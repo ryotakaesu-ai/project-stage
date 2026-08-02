@@ -62,11 +62,11 @@ const CMDS = [
 ];
 
 const AUDS = [
-  { d: 6,  n: "1次審査",   sub: "自己PR と 歌唱",       q: 10, lv: 2, need: 44, drop: null,   base: { shion: 56, ren: 58, haru: 48, kai: 52, sora: 44 } },
-  { d: 12, n: "2次審査",   sub: "ダンス審査",           q: 12, lv: 3, need: 54, drop: "kai",  base: { shion: 65, ren: 67, haru: 56, kai: 58, sora: 52 } },
-  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 62, drop: "sora", base: { shion: 73, ren: 75, haru: 64, sora: 58 } },
-  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 4, need: 70, drop: "haru", base: { shion: 81, ren: 82, haru: 71 } },
-  { d: 30, n: "ファイナル審査", sub: "デビューをかけた最終ステージ", q: 15, lv: 5, need: 78, drop: "final", base: { shion: 88, ren: 90 } },
+  { d: 6,  n: "1次審査",   sub: "自己PR と 歌唱",       q: 10, lv: 2, need: 42, drop: null,   base: { shion: 56, ren: 58, haru: 48, kai: 52, sora: 44 } },
+  { d: 12, n: "2次審査",   sub: "課題曲『RUN』ダンス審査", q: 12, lv: 3, need: 52, drop: "kai",  base: { shion: 65, ren: 67, haru: 56, kai: 58, sora: 52 } },
+  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 60, drop: "sora", base: { shion: 73, ren: 75, haru: 64, sora: 58 } },
+  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 4, need: 68, drop: "haru", base: { shion: 81, ren: 82, haru: 71 } },
+  { d: 30, n: "ファイナル審査", sub: "課題曲『STAGE』最終ステージ", q: 15, lv: 5, need: 76, drop: "final", base: { shion: 86, ren: 88 } },
 ];
 const TOTAL_D = 30;
 const CAMP = [13, 18];   /* 合宿期間 */
@@ -238,6 +238,37 @@ const EVENTS = [
     { t: "あとでこっそり教える", fx: { aff: { sora: 10 }, st: { tk: 3 } } } ] },
 ];
 
+/* ================= 固有ストーリーイベント（日付固定） ================= */
+/* 3次審査・チーム課題曲 */
+const SONGS = [
+  { id: "run2",     n: "BREAK THE WALL", e: "🧱", k: "da", d: "壁を壊す激しいダンスナンバー。ダンスが審査に上乗せ" },
+  { id: "mikansei", n: "未完成ランウェイ", e: "🌙", k: "vo", d: "サビで泣かせるバラード。歌唱力が審査に上乗せ" },
+  { id: "overflow", n: "OVERFLOW",        e: "🌊", k: "ex", d: "感情を爆発させる激情系。表現力が審査に上乗せ" },
+];
+/* 4次審査・ソロ構成 */
+const SOLOS = [
+  { id: "ballad", n: "バラードで魅せる",         e: "🎹", k: "vo", d: "静かに始めて、サビで全部持っていく" },
+  { id: "break",  n: "ダンスブレイクで沸かせる", e: "⚡️", k: "da", d: "間奏で会場の空気を一変させる" },
+  { id: "rap",    n: "ラップアレンジで攻める",   e: "🎙", k: "tk", d: "自分の言葉に書き換えて畳みかける" },
+];
+const FIXED = {
+  2: { c: "haru", t: "「密着ドキュメンタリーの初取材だって！\nほら{name}、カメラ回ってる。初日の意気込み、どうぞ！」", ch: [
+    { t: "「センターを、獲りに来ました」", fx: { fans: 500, st: { me: 3 } } },
+    { t: "「一日ずつ、やるだけです」", fx: { st: { me: 4 }, aff: { kai: 4 } } },
+    { t: "カメラにピースだけして逃げる", fx: { fans: 300, aff: { haru: 6 } } } ] },
+  8: { c: "riku", t: "「2次審査の課題曲を発表する。——『RUN』。\n振り入れは3日でやれ。\nついてこれないやつは、そこまでってことだ」", ch: [
+    { t: "その場で振りを叩き込む", fx: { st: { da: 5 }, stam: -15 } },
+    { t: "動画を撮って夜に復習する", fx: { st: { da: 3, me: 3 } } } ] },
+  16: { c: "tsukasa", t: "「（合宿の練習場に、司が突然現れた）\n……いまから通しでやってみろ。抜き打ちだ。\n本番は、いつも突然来る」", ch: [
+    { t: "先頭に立って引っぱる", fx: { st: { ex: 4, me: 3 }, stam: -12 } },
+    { t: "ミスを恐れず思いきりやる", fx: { st: { da: 4 }, cond: 1 } } ] },
+  20: { solo: true },
+  26: { c: "kanade", t: "「ファイナルの課題曲が決まったよ。——『STAGE』。\nデビューする2人が、いちばん最初に歌う曲でもある。\n……この曲を歌っている自分、想像してごらん」", ch: [
+    { t: "（ステージに立つ自分を思い描く）", fx: { st: { me: 5 }, cond: 1 } },
+    { t: "「歌詞、先にください」", fx: { st: { vo: 4, tk: 3 } } } ] },
+};
+const pickWeak = () => STATS.reduce((a, b) => G.st[a.k] <= G.st[b.k] ? a : b).k;
+
 /* ================= セーブ ================= */
 const KEY = "projectStage_v1";
 const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [] };
@@ -315,7 +346,13 @@ function renderTitle() {
 }
 $("muteBtn").onclick = () => { DB.meta.mute = !DB.meta.mute; save(); $("muteBtn").textContent = DB.meta.mute ? "🔇" : "🔊"; };
 $("btnNew").onclick = () => { sfx.tap(); if (DB.run && !confirm("いまの挑戦データは消えます。よろしいですか？")) return; renderCreate(); };
-$("btnCont").onclick = () => { sfx.tap(); G = DB.run; renderMain(); };
+$("btnCont").onclick = () => {
+  sfx.tap(); G = DB.run;
+  /* 旧バージョンのセーブとの互換 */
+  G.fixedSeen = G.fixedSeen || []; G.evseen = G.evseen || [];
+  G.song = G.song || null; G.solo = G.solo || null; G.leader = G.leader || null;
+  renderMain();
+};
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
 $("btnDream").onclick = () => { sfx.tap(); openDream(); };
 $("btnZukanT").onclick = () => { sfx.tap(); openZukan(); };
@@ -333,7 +370,11 @@ function openHelp() {
     <div class="item"><span class="ie">⚠️</span><div class="it"><b>合格ラインを2回連続で下回ると脱落</b>
       <small>1回目は「崖っぷち」。次で挽回できなければ、そこで終わり。</small></div></div>
     <div class="item"><span class="ie">🏕</span><div class="it"><b>DAY13〜18は強化合宿</b>
-      <small>チームを組んで課題曲に挑む。チーム練習は伸びが大きいが体力を大きく使う。</small></div></div>
+      <small>チーム決め → リーダー決め → 課題曲選び。チーム練習は伸びが大きいが体力を大きく使う。リーダーを引き受けると練習効率と審査点が上がる。</small></div></div>
+    <div class="item"><span class="ie">🎵</span><div class="it"><b>課題曲とソロ構成</b>
+      <small>3次は課題曲（DAY13に選択）、4次はソロ構成（DAY20に選択）に合うステータスが高いほど審査点が上乗せされる。</small></div></div>
+    <div class="item"><span class="ie">🌙</span><div class="it"><b>審査当日の朝は「直前の追い込み」</b>
+      <small>追い込む／体を整える／円陣を組む。状態を見て選ぼう。</small></div></div>
     <div class="item"><span class="ie">💔</span><div class="it"><b>候補生は1人ずつ脱落していく</b>
       <small>仲良くなったやつほど、見送りはつらい。好感度は最後まで効いてくる。</small></div></div>
     <div class="item"><span class="ie">✨</span><div class="it"><b>スキル14種</b>
@@ -372,6 +413,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
+    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [],
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
   DB.run = G; save(); sfx.clear();
@@ -402,8 +444,10 @@ function renderMain() {
   const a = nextAud();
   $("mDay").textContent = G.day;
   $("mPhase").textContent = PHASE(G.day);
+  const songTag = inCamp() && G.song ? `<div class="camp">合宿中　課題曲『${SONGS.find(x => x.id === G.song).n}』</div>` : (inCamp() ? `<div class="camp">強化合宿中</div>` : "");
+  const rankTag = G.lastRank ? `<div style="font-size:9.5px;color:var(--ink3);margin-top:2px">前回審査 <b style="color:var(--gold)">${G.lastRank}位</b>/${G.lastRankOf || "?"}人</div>` : "";
   $("mNext").innerHTML = a
-    ? (a.d === G.day ? `<b>本日 ${a.n}</b>` : `${a.n}まで <b>あと${a.d - G.day}日</b>`) + (inCamp() ? `<div class="camp">強化合宿中</div>` : "")
+    ? (a.d === G.day ? `<b>本日 ${a.n}</b>` : `${a.n}まで <b>あと${a.d - G.day}日</b>`) + songTag + rankTag
     : "";
   $("mName").textContent = G.name;
   const avg = STATS.reduce((s, x) => s + G.st[x.k], 0) / 5;
@@ -439,7 +483,7 @@ function renderMain() {
         <span class="cost" style="${low ? "color:#e63946" : ""}">体力 −${cost}</span></span></button>`;
     }).join("") +
       (inCamp() && G.team ? `<button class="cmd team wide" data-c="teamp"><span class="ce">🎬</span>
-        <span><b>チーム練習</b><small>${G.team.map(i => CANDS[i].n).join("・")} と課題曲を合わせる　体力 −34</small></span></button>` : "") +
+        <span><b>チーム練習${G.song ? `『${SONGS.find(x => x.id === G.song).n}』` : ""}</b><small>${G.team.map(i => CANDS[i].n).join("・")} と課題曲を合わせる${G.leader === "me" ? "（リーダー）" : ""}　体力 −34</small></span></button>` : "") +
       `<button class="cmd rest" data-c="rest"><span class="ce">😴</span><span><b>休養</b><small>体力を大きく回復</small></span></button>
        <button class="cmd talk" data-c="talk"><span class="ce">🤝</span><span><b>交流</b><small>候補生と話す</small></span></button>`;
   }
@@ -519,12 +563,13 @@ function doTeamPractice() {
   if (G.stam < cost && !confirm("体力が足りない。それでもチーム練習する？")) return;
   G.stam = Math.max(0, G.stam - cost);
   const genre = pick(["frac", "ratio", "pi"]);
+  const songN = G.song ? `『${SONGS.find(x => x.id === G.song).n}』` : "";
   startQuiz({
     mode: "lesson", genre, lv: lessonLv(), total: 10,
-    title: `🎬 チーム練習（${G.team.map(i => CANDS[i].n).join("・")}）`,
+    title: `🎬 チーム練習${songN}`,
     onEnd: r => {
       const fx = skillFx();
-      const mult = CONDS[G.cond].m * (1 + fx.all) * 1.35;
+      const mult = CONDS[G.cond].m * (1 + fx.all) * (G.leader === "me" ? 1.45 : 1.35);
       const base = 2.5 + r.score / 13;
       const gains = [];
       ["da", "ex"].forEach(k => { const d = addStat(k, gainFor(k, base * mult)); if (d) gains.push([STATS.find(s => s.k === k).n, d]); });
@@ -668,15 +713,68 @@ function afterDay() {
   save();
   /* 合宿入り */
   if (G.day === CAMP[0] && !G.team) return campStart();
+  /* 固有ストーリーイベント */
+  G.fixedSeen = G.fixedSeen || [];
+  const fev = FIXED[G.day];
+  if (fev && !G.fixedSeen.includes(G.day)) {
+    G.fixedSeen.push(G.day); save();
+    if (fev.solo) return showSoloSelect();
+    return showEvent({ c: fev.c, t: fev.t, ch: fev.ch.map(c => ({ t: c.t, fx: c.fx, after: () => renderMain() })) });
+  }
+  /* 審査当日の朝＝直前の追い込みイベント */
   const a = nextAud();
-  if (a && a.d === G.day) {
+  if (a && a.d === G.day) return eveEvent(a);
+  renderMain();
+}
+
+/* ================= 直前の追い込み（審査当日の朝） ================= */
+function eveEvent(a) {
+  const isFinal = a.d === TOTAL_D;
+  const weak = pickWeak();
+  const enjinAff = Object.fromEntries(G.alive.map(id => [id, 3]));
+  const ch = [
+    { t: `🔥 ギリギリまで追い込む（${STATS.find(s => s.k === weak).n}を仕上げる）`, fx: { st: { [weak]: 4 }, stam: -15 } },
+    { t: "😴 体を整えて、いちばん良い状態で立つ", fx: { stam: 35, cond: 1 } },
+    { t: "🤝 みんなで円陣を組む", fx: { st: { me: 4 }, aff: enjinAff, silent: true, msg: "円陣を組んだ。精神力 +4／全員の好感度 +3" } },
+  ];
+  if (isFinal) {
+    const letters = {
+      kai:  "カイ「おれの分まで、なんて言わない。おまえは、おまえの理由で立て」",
+      sora: "ソラ「ぼくの推しは、{name}くんです。ずっとです」",
+      haru: "ハル「あの舞台、おまえに似合うよ。……見に行くからな、最前列」",
+    };
+    const dropped = CAND_IDS.filter(id => !G.alive.includes(id));
+    const lt = dropped.map(id => letters[id]).filter(Boolean).join("\n");
     return showEvent({
       c: "kanade",
-      t: `「明日はいよいよ『${a.n}』。\n……${esc(G.name)}くん、ここまでよくやってきたね。\n\n見せてきなよ、全部」`,
-      ch: [{ t: "会場へ", fx: { cond: 1 }, after: () => renderMain() }]
+      t: `「いよいよ、今夜で全部決まる。\n……その前に。これ、預かってたんだ」\n\n（脱落していったメンバーからの手紙だった）\n\n${lt || "……"}\n\n「さあ。最後の時間、どう使う？」`,
+      ch: ch.map(c => ({ ...c, after: () => renderMain() }))
     });
   }
+  showEvent({
+    c: "kanade",
+    t: `「今日は『${a.n}』。\n……ここまでやってきたことは、消えない。\n\n本番まで、あと少し。どう過ごす？」`,
+    ch: ch.map(c => ({ ...c, after: () => renderMain() }))
+  });
+}
+
+/* ================= ソロ構成選び（DAY20） ================= */
+function showSoloSelect() {
   renderMain();
+  openSheet(`<div class="ptitle">個人パフォーマンスの構成<small>4次審査は完全ソロ。自分をどう魅せる？</small></div>
+  <div class="list">${SOLOS.map(s => `<button class="item" data-s="${s.id}">
+    <span class="ie">${s.e}</span><div class="it"><b>${s.n}</b>
+    <small>${s.d}（${STATS.find(x => x.k === s.k).n}が審査に上乗せ）</small></div></button>`).join("")}</div>
+  <div class="smallnote">いまの自分のステータスと相談して決めよう。</div>`);
+  $("sheetPanel").querySelectorAll(".item").forEach(b => b.onclick = () => {
+    G.solo = b.dataset.s; sfx.clear(); save(); closeSheet();
+    const s = SOLOS.find(x => x.id === G.solo);
+    showEvent({
+      c: "shion",
+      t: `（構成表を見せると、シオンが静かにうなずいた）\n\n「……${s.n.replace(/で.*$/, "")}。\nおまえらしい。\n\n……本番、いちばん近くで見てる」`,
+      ch: [{ t: "「ああ。見てて」", fx: { aff: { shion: 6 }, st: { me: 3 } }, after: () => renderMain() }]
+    });
+  });
 }
 
 /* ================= 合宿 ================= */
@@ -711,11 +809,45 @@ function pickTeam() {
       showEvent({
         c: sel[0],
         t: `（${CANDS[sel[0]].n}と${CANDS[sel[1]].n}とチームを組んだ）\n\n「……よろしく。\n6日で、仕上げる」`,
-        ch: [{ t: "▶", fx: { aff: { [sel[0]]: 5, [sel[1]]: 5 }, silent: true }, after: () => renderMain() }]
+        ch: [{ t: "▶", fx: { aff: { [sel[0]]: 5, [sel[1]]: 5 }, silent: true }, after: () => pickLeader() }]
       });
     };
   };
   render();
+}
+/* リーダー決め */
+function pickLeader() {
+  const [a, b] = G.team;
+  showEvent({
+    c: b,
+    t: "「……で。このチーム、リーダーは誰がやる？」\n\n（3人の視線が交差する。誰が背負うかで、チームの形が決まる）",
+    ch: [
+      { t: "「おれがやる」", fx: { st: { me: 5, tk: 3 }, msg: "リーダーになった。責任と引きかえに、心が据わった" },
+        after: () => { G.leader = "me"; save(); pickSong(); } },
+      { t: `「${CANDS[a].n}に任せたい」`, fx: { aff: { [a]: 9 }, st: { me: 2 } },
+        after: () => { G.leader = a; save(); pickSong(); } },
+      { t: `「${CANDS[b].n}がいいと思う」`, fx: { aff: { [b]: 9 }, st: { me: 2 } },
+        after: () => { G.leader = b; save(); pickSong(); } },
+    ]
+  });
+}
+/* 課題曲選び */
+function pickSong() {
+  openSheet(`<div class="ptitle">チーム課題曲を選ぶ<small>3次審査で披露する1曲。曲で勝負どころが変わる</small></div>
+  <div class="list">${SONGS.map(s => `<button class="item" data-s="${s.id}">
+    <span class="ie">${s.e}</span><div class="it"><b>『${s.n}』</b>
+    <small>${s.d}（いまの${STATS.find(x => x.k === s.k).n} ${Math.round(G.st[s.k])}）</small></div></button>`).join("")}</div>
+  <div class="smallnote">選んだ曲に合うステータスが高いほど、3次審査の点数が上がる。</div>`);
+  $("sheetPanel").querySelectorAll(".item").forEach(btn => btn.onclick = () => {
+    G.song = btn.dataset.s; sfx.clear(); save(); closeSheet();
+    const s = SONGS.find(x => x.id === G.song);
+    const ldr = G.leader === "me" ? "きみ" : CANDS[G.leader].n;
+    showEvent({
+      c: G.team[0],
+      t: `課題曲は『${s.n}』。リーダーは${ldr}。\n\n「……決まりだな。\n6日後、いちばんいいステージにする」\n\n（合宿が、始まった）`,
+      ch: [{ t: "「やろう」", fx: { cond: 1 }, after: () => renderMain() }]
+    });
+  });
 }
 
 /* ================= イベント ================= */
@@ -903,12 +1035,26 @@ function finishAudition(a, idx, r) {
   const each = JUDGES.map(j => ({ j, s: judgeScore(j, r.score, fx) }));
   const total = Math.round(each.reduce((s, e) => s + e.s, 0) / 3);
   /* チームボーナス（3次審査） */
-  let teamB = 0;
+  let teamB = 0, songB = 0, leadB = 0, soloB = 0;
+  let songName = "", soloName = "";
   if (idx === 2 && G.team) {
     teamB = Math.round(G.team.reduce((s, i) => s + G.aff[i], 0) / 20);
-    each.forEach(e => e.s += teamB);
+    if (G.song) {
+      const sg = SONGS.find(x => x.id === G.song);
+      songB = clamp(Math.round((G.st[sg.k] - 50) * .15), 0, 8);
+      songName = sg.n;
+    }
+    if (G.leader === "me") leadB = 3;
+    each.forEach(e => e.s += teamB + songB + leadB);
   }
-  const finalTotal = total + teamB;
+  /* ソロ構成ボーナス（4次審査） */
+  if (idx === 3 && G.solo) {
+    const sl = SOLOS.find(x => x.id === G.solo);
+    soloB = clamp(Math.round((G.st[sl.k] - 50) * .15), 0, 8);
+    soloName = sl.n;
+    each.forEach(e => e.s += soloB);
+  }
+  const finalTotal = total + teamB + songB + leadB + soloB;
   const pass = finalTotal >= a.need;
 
   /* ライバルのスコア */
@@ -923,6 +1069,7 @@ function finishAudition(a, idx, r) {
   const fans = Math.round((pass ? 1200 : 400) * (1 + idx * .6) * (1 + (finalTotal - a.need) / 100) * (1 + fx.fan));
   G.fans += Math.max(0, fans);
   G.auds.push({ n: a.n, score: finalTotal, rank: myRank, pass });
+  G.lastRank = myRank; G.lastRankOf = board.length;
 
   if (pass) { confetti(40); sfx.clear(); } else sfx.bad();
 
@@ -939,6 +1086,9 @@ function finishAudition(a, idx, r) {
       <div class="js" style="color:${e.s >= 75 ? "#ffcf5c" : e.s >= 60 ? "#3ddc97" : "#e63946"}">${e.s}</div></div>`).join("")}
     <div class="gains" style="margin-top:10px">
       ${teamB ? `<div class="gain"><span>チームボーナス（${G.team.map(i => CANDS[i].n).join("・")}）</span><b>+${teamB}</b></div>` : ""}
+      ${songB ? `<div class="gain"><span>課題曲『${songName}』ボーナス</span><b>+${songB}</b></div>` : ""}
+      ${leadB ? `<div class="gain"><span>リーダーとしてチームを牽引</span><b>+${leadB}</b></div>` : ""}
+      ${soloB ? `<div class="gain"><span>ソロ構成「${soloName}」ボーナス</span><b>+${soloB}</b></div>` : ""}
       <div class="gain"><span>計算パフォーマンス</span><b>${r.score}点 → 各審査員に40%反映</b></div>
       <div class="gain"><span>📈 注目度</span><b>+${Math.max(0, fans).toLocaleString()}</b></div>
     </div>
@@ -1017,11 +1167,13 @@ function announce(a, idx, board, pass) {
       $("annBtn").onclick = () => {
         sfx.tap();
         if (isFinal) return ending("final", board);
+        if (idx >= 2) G.team = null;   /* 合宿チームは3次審査で解散 */
         /* 崖っぷち判定 */
         if (!pass) {
           G.warnCount++;
           if (G.warn) return ending("out");
           G.warn = true;
+          toast("⚠ 崖っぷち：次の審査で挽回できなければ脱落");
         } else { G.warn = false; }
         if (dropId) {
           G.alive = G.alive.filter(x => x !== dropId);
