@@ -1,0 +1,1298 @@
+"use strict";
+/* =========================================================
+   PROJECT STAGE ☆ 計算オーディション
+   男子アイドル・オーディション育成シミュレーション
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const ri = MATH.ri, pick = MATH.pick;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ================= マスタ ================= */
+const STATS = [
+  { k: "vo", n: "歌唱力",  c: "#e63946" },
+  { k: "da", n: "ダンス",  c: "#4cc9f0" },
+  { k: "ex", n: "表現力",  c: "#ffcf5c" },
+  { k: "tk", n: "トーク",  c: "#3ddc97" },
+  { k: "me", n: "精神力",  c: "#8b7bff" },
+];
+const RANKS = [[93,"S","#ffcf5c"],[85,"A","#ff9f43"],[75,"B","#4cc9f0"],[62,"C","#3ddc97"],[48,"D","#8b7bff"],[32,"E","#7b7b95"],[16,"F","#5a5a70"],[0,"G","#44445a"]];
+const rank = v => RANKS.find(r => v >= r[0]);
+
+const AVATARS = [
+  { id: "mc_a", img: "img/mc_a.jpg" },
+  { id: "mc_b", img: "img/mc_b.jpg" },
+  { id: "mc_c", img: "img/mc_c.jpg" },
+  { id: "mc_d", img: "img/mc_d.jpg" },
+];
+const TYPES = [
+  { id: "vo", e: "🎤", n: "ボーカル型", d: "歌唱力がぐんぐん伸びる", boost: { vo: 1.35, da: .9 } },
+  { id: "da", e: "🕺", n: "ダンス型",   d: "ダンスがぐんぐん伸びる", boost: { da: 1.35, vo: .9 } },
+  { id: "ex", e: "🔥", n: "パフォーマー型", d: "表現力とトークが伸びる", boost: { ex: 1.3, tk: 1.15, me: .9 } },
+  { id: "ba", e: "⚖️", n: "オールラウンダー", d: "ぜんぶ平均的に伸びる。体力おおめ", boost: {}, stam: 15 },
+];
+
+/* 候補生 */
+const CANDS = {
+  shion: { n: "シオン", full: "詩音 / 17", img: "img/shion.jpg", c: "#8b7bff", role: "無口な天才ダンサー" },
+  ren:   { n: "レン",   full: "蓮 / 19",   img: "img/ren.jpg",   c: "#e63946", role: "実力No.1のライバル" },
+  haru:  { n: "ハル",   full: "陽向 / 18", img: "img/haru.jpg",  c: "#ff9f43", role: "ムードメーカー" },
+  kai:   { n: "カイ",   full: "海斗 / 21", img: "img/kai.jpg",   c: "#3ddc97", role: "最年長・歌唱力の要" },
+  sora:  { n: "ソラ",   full: "空 / 15",   img: "img/sora.jpg",  c: "#4cc9f0", role: "最年少・伸びしろの塊" },
+};
+const CAND_IDS = ["shion", "ren", "haru", "kai", "sora"];
+
+/* 審査員（先輩グループ） */
+const JUDGES = [
+  { id: "tsukasa", n: "司",   img: "img/judge_tsukasa.jpg", role: "リーダー・辛口", w: { vo: .45, da: .30, me: .25 } },
+  { id: "kanade",  n: "奏",   img: "img/judge_kanade.jpg",  role: "人間性を見る",   w: { me: .40, tk: .35, ex: .25 } },
+  { id: "riku",    n: "陸",   img: "img/judge_riku.jpg",    role: "ダンス番長",     w: { da: .50, ex: .40, vo: .10 } },
+];
+const JCOMMENT = {
+  tsukasa: [[85, "「文句なし。おまえ、化けたな」"], [70, "「悪くない。だが、まだ足りない」"], [55, "「もっとやれるはずだ。見せてみろ」"], [0, "「……このままだと、落ちるぞ」"]],
+  kanade:  [[85, "「その表情、すごくよかった。伝わってきたよ」"], [70, "「がんばってるのが見えた。自信を持って」"], [55, "「ちょっと固かったかな。楽しんでいこう」"], [0, "「無理してない？ 大丈夫？」"]],
+  riku:    [[85, "「やべぇ。おまえのダンス、目が離せない」"], [70, "「キレは出てきた。あとは体幹だな」"], [55, "「リズム、まだ走ってる。落ち着け」"], [0, "「基礎からやり直しだな、これは」"]],
+};
+
+const CMDS = [
+  { id: "vo", g: "pi",    e: "🎤", n: "ボーカル練習", s: "3.14の計算", main: "vo", sub: "me", st: 22 },
+  { id: "da", g: "frac",  e: "🕺", n: "ダンス練習",   s: "分数と小数", main: "da", sub: "ex", st: 24 },
+  { id: "ex", g: "ratio", e: "🔥", n: "表現力トレ",   s: "割合と比",   main: "ex", sub: "tk", st: 18 },
+  { id: "tk", g: "gyaku", e: "🎙", n: "トーク練習",   s: "逆算",       main: "tk", sub: "me", st: 20 },
+  { id: "sk", g: "kufuu", e: "💪", n: "自主トレ",     s: "四則と工夫", main: "me", sub: "*",  st: 26 },
+];
+
+const AUDS = [
+  { d: 6,  n: "1次審査",   sub: "自己PR と 歌唱",       q: 10, lv: 2, need: 44, drop: null,   base: { shion: 56, ren: 58, haru: 48, kai: 52, sora: 44 } },
+  { d: 12, n: "2次審査",   sub: "ダンス審査",           q: 12, lv: 3, need: 54, drop: "kai",  base: { shion: 65, ren: 67, haru: 56, kai: 58, sora: 52 } },
+  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 62, drop: "sora", base: { shion: 73, ren: 75, haru: 64, sora: 58 } },
+  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 4, need: 70, drop: "haru", base: { shion: 81, ren: 82, haru: 71 } },
+  { d: 30, n: "ファイナル審査", sub: "デビューをかけた最終ステージ", q: 15, lv: 5, need: 78, drop: "final", base: { shion: 88, ren: 90 } },
+];
+const TOTAL_D = 30;
+const CAMP = [13, 18];   /* 合宿期間 */
+const PHASE = d => d <= 6 ? "1次審査まで" : d <= 12 ? "2次審査まで" : d <= 18 ? "強化合宿" : d <= 24 ? "4次審査まで" : "ファイナルまで";
+
+const CONDS = [
+  { n: "絶不調", c: "#7b7b95", m: .70 },
+  { n: "不調",   c: "#4cc9f0", m: .85 },
+  { n: "普通",   c: "#3ddc97", m: 1.00 },
+  { n: "好調",   c: "#ffcf5c", m: 1.15 },
+  { n: "絶好調", c: "#e63946", m: 1.35 },
+];
+
+const OUTFITS = [
+  { id: "o1", n: "黒シャツ",           e: "🖤", cost: 300,  ex: 3 },
+  { id: "o2", n: "シルバージャケット", e: "🩶", cost: 900,  ex: 6 },
+  { id: "o3", n: "レザーセットアップ", e: "🧥", cost: 2000, ex: 10 },
+  { id: "o4", n: "白スーツ",           e: "🤍", cost: 3800, ex: 14 },
+  { id: "o5", n: "スパンコール衣装",   e: "✨", cost: 6000, ex: 18 },
+  { id: "o6", n: "センター衣装",       e: "👑", cost: 9000, ex: 24 },
+];
+const ITEMS = [
+  { id: "drink",   n: "エナジードリンク", e: "🥤", cost: 250,  d: "体力が 45 回復" },
+  { id: "omamori", n: "先輩からの差し入れ", e: "🍱", cost: 700,  d: "次の練習の伸び 1.6倍" },
+  { id: "note",    n: "計算ノート",       e: "📓", cost: 1200, d: "問題の制限時間 +30%（ずっと）" },
+];
+
+const SKILLS = [
+  { id: "pi3",   n: "3.14の男",       e: "🥧", d: "ボーカル練習の伸び +30%",  chk: G => G.pf.pi >= 3,   fx: { g: { pi: .3 } } },
+  { id: "pi8",   n: "円周率マスター", e: "🎯", d: "審査の点数 +6",            chk: G => G.pf.pi >= 8,   fx: { aud: 6 } },
+  { id: "fr3",   n: "分数コンバーター", e: "🔄", d: "ダンス練習の伸び +30%",  chk: G => G.pf.frac >= 3, fx: { g: { frac: .3 } } },
+  { id: "fr8",   n: "通分の鬼",       e: "👹", d: "審査の点数 +6",            chk: G => G.pf.frac >= 8, fx: { aud: 6 } },
+  { id: "ra3",   n: "割合センサー",   e: "📡", d: "表現力トレの伸び +30%",    chk: G => G.pf.ratio >= 3, fx: { g: { ratio: .3 } } },
+  { id: "ra8",   n: "パーセントキング", e: "💯", d: "注目度の増え方 +25%",    chk: G => G.pf.ratio >= 8, fx: { fan: .25 } },
+  { id: "gy3",   n: "逆算アイ",       e: "👁", d: "トーク練習の伸び +30%",    chk: G => G.pf.gyaku >= 3, fx: { g: { gyaku: .3 } } },
+  { id: "gy8",   n: "見ぬく目",       e: "🔍", d: "審査の点数 +6",            chk: G => G.pf.gyaku >= 8, fx: { aud: 6 } },
+  { id: "ku3",   n: "工夫の天才",     e: "💡", d: "自主トレの伸び +30%",      chk: G => G.pf.kufuu >= 3, fx: { g: { kufuu: .3 } } },
+  { id: "king",  n: "計算の王",       e: "♔",  d: "すべての練習 +20%／審査 +10", chk: G => ["pi","frac","ratio","gyaku","kufuu"].every(k => G.pf[k] >= 5), fx: { all: .2, aud: 10 } },
+  { id: "combo", n: "コンボモンスター", e: "🔥", d: "コンボが1回だけ守られる", chk: G => G.bestCombo >= 15, fx: { shield: 1 } },
+  { id: "nomiss",n: "ノーミスの誇り", e: "🛡", d: "練習の体力消費 −5",        chk: G => G.perfectLesson >= 1, fx: { st: -5 } },
+  { id: "iron",  n: "鉄のメンタル",   e: "⛰", d: "本番で緊張しなくなる",      chk: G => G.st.me >= 70, fx: { iron: 1 } },
+  { id: "star",  n: "華のあるやつ",   e: "🌟", d: "注目度の増え方 +30%",      chk: G => CAND_IDS.reduce((s, c) => s + G.aff[c], 0) >= 200, fx: { fan: .3 } },
+];
+
+/* ================= 会話（交流） ================= */
+const TALKS = {
+  shion: [
+    { t: "「……（無言でストレッチを続けている）」\n\nどうする？", c: [
+      { t: "となりで同じメニューをやる", a: 15 },
+      { t: "「教えてくれない？」と声をかける", a: 12 },
+      { t: "そっとしておく", a: 4 } ] },
+    { t: "「……{name}。おまえ、なんで踊るの」\n\n（めずらしく、シオンから聞いてきた）", c: [
+      { t: "「見つけてほしいから」", a: 16 },
+      { t: "「気持ちいいから」", a: 12 },
+      { t: "「……わかんない」", a: 8 } ] },
+    { t: "「（練習の動画を見せてくる）……ここ。ここが、ずれてる」\n\n（無表情のまま、めちゃくちゃ細かい）", c: [
+      { t: "「すげぇ。よく見てるな」", a: 14 },
+      { t: "「もう一回、見てくれる？」", a: 16 },
+      { t: "「自分でも気づいてた」", a: 6 } ] },
+  ],
+  ren: [
+    { t: "「なあ。おまえ、俺に勝てると思ってる？」", c: [
+      { t: "「勝つ。ぜったい」", a: 14 },
+      { t: "「わからない。でも、やめない」", a: 16 },
+      { t: "「……たぶん、無理」", a: 3 } ] },
+    { t: "「俺は、落ちるのがこわい。\nずっとトップでいたから、下がる場所がない」", c: [
+      { t: "「こわいのは、本気だからだろ」", a: 16 },
+      { t: "「おれも、こわいよ」", a: 13 },
+      { t: "「レンなら落ちないだろ」", a: 5 } ] },
+  ],
+  haru: [
+    { t: "「{name}〜！ めし食った？ 食ってないだろ。ほら、これ余った」", c: [
+      { t: "「ありがとう。助かる」", a: 14 },
+      { t: "「ハルは食ったのかよ」", a: 12 },
+      { t: "「いらない、練習する」", a: 4 } ] },
+    { t: "「おれさ、正直、実力じゃ勝てないと思ってる。\nでも、この空気だけは、おれが作る」", c: [
+      { t: "「それ、いちばん強いやつの仕事だよ」", a: 16 },
+      { t: "「実力も上がってるって」", a: 12 },
+      { t: "「そっか」", a: 6 } ] },
+  ],
+  kai: [
+    { t: "「{name}、フォーム見てやるよ。……ここ、力入りすぎ」", c: [
+      { t: "「お願いします！」", a: 14 },
+      { t: "「カイさん、なんでそんなに詳しいんすか」", a: 12 },
+      { t: "「大丈夫っす」", a: 4 } ] },
+    { t: "「21歳。……このオーディション、たぶん、おれの最後のチャンスなんだ」", c: [
+      { t: "「じゃあ、最後まで一緒に行きましょう」", a: 17 },
+      { t: "「年齢とか関係ないっすよ」", a: 12 },
+      { t: "「……そうなんすね」", a: 6 } ] },
+  ],
+  sora: [
+    { t: "「{name}くん！ さっきの動き、どうやってるんですか！？」", c: [
+      { t: "分解してゆっくり見せる", a: 15 },
+      { t: "「一緒にやってみよう」", a: 16 },
+      { t: "「感覚だから説明できない」", a: 5 } ] },
+    { t: "「ぼく、15歳で……たぶん、いちばん下手なんです。\nでも、いちばん練習してます」", c: [
+      { t: "「知ってる。毎晩見てたから」", a: 17 },
+      { t: "「その言葉が言えるだけで強いよ」", a: 14 },
+      { t: "「がんばれ」", a: 6 } ] },
+  ],
+};
+
+/* 好感度イベント */
+const BONDS = {
+  shion: [
+    { at: 30, t: "「……これ。（自分の練習用プレイリストを共有された）\n……使えば」", fx: { st: { da: 4 }, msg: "シオンのプレイリスト！ ダンス +4" } },
+    { at: 60, t: "「（鏡ごしに目が合う）\n……いま、笑ってた？ ……おまえも」\n\n（シオンが、ほんの少しだけ笑った）", fx: { st: { da: 5, ex: 5 }, stam: 20, msg: "シオンの笑顔を見た" } },
+    { at: 90, t: "「おまえと踊るの、たのしい。\n……はじめて言った。\n最後まで、となりにいろよ」", fx: { st: { da: 7, ex: 6, me: 5 }, msg: "シオンとの絆・最大" } },
+  ],
+  ren: [
+    { at: 30, t: "「付き合ってやる。……感謝しろよ、俺の練習はキツい」", fx: { st: { vo: 4 }, msg: "レンの特訓！ 歌唱力 +4" } },
+    { at: 60, t: "「おまえがいるから、俺は手を抜けない。\n……悪くない気分だ、これ」", fx: { st: { vo: 5, me: 5 }, msg: "ライバルから、好敵手へ" } },
+    { at: 90, t: "「勝てよ。俺に勝てないなら、おまえの夢もそこまでだ。\n……待ってるから」", fx: { st: { vo: 6, da: 6, ex: 6 }, msg: "レンとの絆・最大" } },
+  ],
+  haru: [
+    { at: 30, t: "「{name}となら、いける気がすんだよな。なんとなく！」", fx: { st: { ex: 4 }, msg: "ハルとコンビ結成！ 表現力 +4" } },
+    { at: 60, t: "「おれ、{name}が笑ってるとこ見ると、まだいけるって思う。\n……ださいこと言った、いま忘れて」", fx: { st: { ex: 5, tk: 4 }, stam: 25, msg: "ハルの本音" } },
+    { at: 90, t: "「どっちが落ちても、恨みっこなしな。\n……でも、おれは{name}に受かってほしい」", fx: { st: { ex: 7, tk: 6, me: 6 }, msg: "ハルとの絆・最大" } },
+  ],
+  kai: [
+    { at: 30, t: "「発声、基礎からやるぞ。……遠回りが、いちばん速い」", fx: { st: { vo: 4 }, msg: "カイの基礎レッスン！ 歌唱力 +4" } },
+    { at: 60, t: "「おまえ、伸びたな。\n……おれが教えたことより、先に行ってる」", fx: { st: { vo: 6, me: 4 }, msg: "カイが認めてくれた" } },
+    { at: 90, t: "「おれが行けなかったところまで、行ってくれ。\n……たのむ」", fx: { st: { vo: 7, me: 7 }, msg: "カイとの絆・最大" } },
+  ],
+  sora: [
+    { at: 30, t: "「{name}くんのノート、写させてください！\n……計算、こうやって速くするんだ……！」", fx: { st: { me: 4 }, msg: "ソラが慕ってくる。精神力 +4" } },
+    { at: 60, t: "「ぼく、{name}くんみたいになりたいです。\n……あ、生意気でした？」", fx: { st: { me: 5, tk: 5 }, msg: "ソラの憧れ" } },
+    { at: 90, t: "「ぼくがダメでも、{name}くんが行ってください。\n……そしたら、ぼく、来年もう一回受けます」", fx: { st: { me: 8, ex: 5 }, fans: 800, msg: "ソラとの絆・最大" } },
+  ],
+};
+
+/* ランダムイベント */
+const EVENTS = [
+  { id: "e1", c: "haru", t: "「密着カメラ来たぞ！ ほら、なんかコメントしろって！」", ch: [
+    { t: "本音でしゃべる", fx: { fans: 700, st: { tk: 3 }, aff: { haru: 6 } } },
+    { t: "無難にまとめる", fx: { fans: 250, st: { me: 3 } } } ] },
+  { id: "e2", c: "shion", t: "「……深夜2時。（練習場の電気がついている）\n……まだ、やる？」", ch: [
+    { t: "やる", fx: { stam: -25, st: { da: 6, ex: 3 }, aff: { shion: 12 } } },
+    { t: "「寝よう。明日のために」", fx: { stam: 15, st: { me: 4 }, aff: { shion: 5 } } } ] },
+  { id: "e3", c: "ren", t: "「おまえのその歌い方、10年前の型だぞ。……直してやろうか」", ch: [
+    { t: "教えてもらう", fx: { st: { vo: 6 }, aff: { ren: 8 } } },
+    { t: "自分のやり方を貫く", fx: { st: { me: 6 }, aff: { ren: 3 } } } ] },
+  { id: "e4", c: "kai", t: "「体、ちゃんと休めてるか。……無理して壊したやつ、何人も見てきた」", ch: [
+    { t: "「休みます」", fx: { stam: 40, aff: { kai: 8 } } },
+    { t: "「まだやれます」", fx: { stam: -10, st: { me: 5 }, aff: { kai: 4 } } } ] },
+  { id: "e5", c: "sora", t: "「{name}くん……ぼく、明日の審査、こわいです」", ch: [
+    { t: "「おれも。だから一緒に練習しよう」", fx: { st: { me: 4 }, aff: { sora: 12 }, stam: -8 } },
+    { t: "「大丈夫だって」", fx: { aff: { sora: 4 } } } ] },
+  { id: "e6", c: "haru", t: "「みんなでSNSに練習動画あげようぜ！ バズったら注目度やばいって」", ch: [
+    { t: "あげる", fx: { fans: 900, aff: { haru: 7, sora: 4 } } },
+    { t: "「完成してからにしよう」", fx: { st: { ex: 4 }, aff: { haru: 3 } } } ] },
+  { id: "e7", c: "tsukasa", t: "「（審査員の司が練習場に来た）\n……おまえ、なんでここにいる。答えろ」", ch: [
+    { t: "「デビューして、証明したいことがあります」", fx: { st: { me: 7 }, cond: 1 } },
+    { t: "「楽しいからです」", fx: { st: { ex: 5 }, fans: 400 } } ] },
+  { id: "e8", c: "riku", t: "「（陸がふらっと現れて）\nおまえ、体幹弱ぇな。ちょっと来い」", ch: [
+    { t: "特訓を受ける", fx: { stam: -28, st: { da: 8 } } },
+    { t: "「今日はやめときます」", fx: { st: { me: 2 }, stam: 5 } } ] },
+  { id: "e9", c: "kanade", t: "「（奏がそっと差し入れをくれた）\nがんばりすぎてない？ ちゃんと寝るんだよ」", ch: [
+    { t: "「ありがとうございます」", fx: { stam: 35, cond: 1 } },
+    { t: "「もう少しだけやります」", fx: { st: { me: 4 }, stam: -5 } } ] },
+  { id: "e10", c: "shion", t: "「……おまえの計算、速い。\n……どうやってる？」", ch: [
+    { t: "「3.14の段は、全部おぼえてる」", fx: { st: { me: 4 }, aff: { shion: 11 } } },
+    { t: "「毎日やってるだけ」", fx: { st: { me: 3 }, aff: { shion: 8 } } } ] },
+  { id: "e11", c: "ren", t: "「（レンが1人で泣いているのを見てしまった）」", ch: [
+    { t: "見なかったことにする", fx: { aff: { ren: 9 }, st: { me: 3 } } },
+    { t: "となりに座る", fx: { aff: { ren: 13 }, stam: -5 } } ] },
+  { id: "e12", c: "sora", t: "「（ソラが振り付けを間違えて、みんなの前で固まっている）」", ch: [
+    { t: "隣に立って一緒にやる", fx: { aff: { sora: 14, haru: 5 }, st: { ex: 3 } } },
+    { t: "あとでこっそり教える", fx: { aff: { sora: 10 }, st: { tk: 3 } } } ] },
+];
+
+/* ================= セーブ ================= */
+const KEY = "projectStage_v1";
+const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [] };
+let DB = { meta: { ...DEF_META }, run: null };
+try {
+  const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
+  DB.meta = Object.assign({}, DEF_META, raw.meta || {});
+  DB.meta.up = Object.assign({}, DEF_META.up, DB.meta.up || {});
+  DB.run = raw.run || null;
+} catch (e) { }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch (e) { } };
+let G = null;
+
+/* ================= 音 ================= */
+let AC = null;
+function beep(f, dur, type = "sine", vol = .13, when = 0) {
+  if (DB.meta.mute) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(vol, AC.currentTime + when);
+    g.gain.exponentialRampToValueAtTime(.001, AC.currentTime + when + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(AC.currentTime + when); o.stop(AC.currentTime + when + dur + .05);
+  } catch (e) { }
+}
+const sfx = {
+  tap: () => beep(440, .04, "square", .04),
+  good: () => { beep(660, .08); beep(880, .11, "sine", .12, .06); },
+  great: () => { beep(660, .06); beep(990, .06, "sine", .13, .05); beep(1320, .16, "sine", .14, .11); },
+  bad: () => beep(120, .3, "sawtooth", .1),
+  clear: () => [523, 659, 784, 1046].forEach((f, i) => beep(f, .22, "sine", .13, i * .12)),
+  drum: () => { for (let i = 0; i < 3; i++) beep(90, .16, "triangle", .12, i * .22); },
+  skill: () => [523, 784, 1046, 1568].forEach((f, i) => beep(f, .18, "triangle", .13, i * .09)),
+  shop: () => { beep(880, .07, "triangle"); beep(1174, .11, "triangle", .12, .06); },
+};
+
+/* ================= 小道具 ================= */
+function toast(msg) {
+  const t = document.createElement("div"); t.className = "tst"; t.innerHTML = msg;
+  $("toast").appendChild(t);
+  setTimeout(() => { t.style.transition = "opacity .4s"; t.style.opacity = 0; setTimeout(() => t.remove(), 400); }, 2000);
+}
+function confetti(n = 34) {
+  const ems = ["✨", "⭐️", "🎉", "💫", "🏆"];
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement("div"); c.className = "conf";
+    c.textContent = pick(ems);
+    c.style.left = Math.random() * 100 + "vw";
+    c.style.animationDuration = (1.7 + Math.random() * 1.8) + "s";
+    c.style.animationDelay = (Math.random() * .5) + "s";
+    document.body.appendChild(c); setTimeout(() => c.remove(), 4300);
+  }
+}
+function show(id) {
+  document.querySelectorAll(".scr").forEach(s => s.classList.remove("on"));
+  $(id).classList.add("on");
+}
+function openSheet(html) { $("sheetPanel").innerHTML = html; $("ovSheet").classList.add("on"); }
+function closeSheet() { $("ovSheet").classList.remove("on"); }
+const esc = s => String(s).replace(/[<>&]/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" }[c]));
+const nm = () => G ? G.name : "きみ";
+const rep = t => t.replace(/\{name\}/g, esc(nm()));
+const PERSON = id => CANDS[id] || JUDGES.find(j => j.id === id);
+const pImg = (id, w, h) => `<img src="${PERSON(id).img}" alt="${PERSON(id).n}" style="width:${w}px;height:${h || w}px;border-radius:4px;object-fit:cover;display:block">`;
+
+/* ================= タイトル ================= */
+function renderTitle() {
+  $("tDp").textContent = DB.meta.dp;
+  $("tPlays").textContent = DB.meta.plays;
+  $("btnCont").disabled = !DB.run;
+  $("muteBtn").textContent = DB.meta.mute ? "🔇" : "🔊";
+  show("scrTitle");
+}
+$("muteBtn").onclick = () => { DB.meta.mute = !DB.meta.mute; save(); $("muteBtn").textContent = DB.meta.mute ? "🔇" : "🔊"; };
+$("btnNew").onclick = () => { sfx.tap(); if (DB.run && !confirm("いまの挑戦データは消えます。よろしいですか？")) return; renderCreate(); };
+$("btnCont").onclick = () => { sfx.tap(); G = DB.run; renderMain(); };
+$("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
+$("btnDream").onclick = () => { sfx.tap(); openDream(); };
+$("btnZukanT").onclick = () => { sfx.tap(); openZukan(); };
+$("btnHelp").onclick = () => { sfx.tap(); openHelp(); };
+
+function openHelp() {
+  openSheet(`<div class="ptitle">ルール説明<small>30日間 × 5回の審査</small></div>
+  <div class="list">
+    <div class="item"><span class="ie">📅</span><div class="it"><b>1日1コマンド</b>
+      <small>練習・休養・交流から1つ選ぶ。DAY6／12／18／24／30が審査。</small></div></div>
+    <div class="item"><span class="ie">🧮</span><div class="it"><b>練習＝計算バトル</b>
+      <small>8問の計算に答える。<u>速く正確に</u>解けるほどステータスが伸びる。3秒以内でPERFECT。</small></div></div>
+    <div class="item"><span class="ie">⚖️</span><div class="it"><b>審査員3人は見るところが違う</b>
+      <small>司＝歌とダンスと精神力／奏＝人間性とトーク／陸＝ダンスと表現力。3人の平均が総合点。</small></div></div>
+    <div class="item"><span class="ie">⚠️</span><div class="it"><b>合格ラインを2回連続で下回ると脱落</b>
+      <small>1回目は「崖っぷち」。次で挽回できなければ、そこで終わり。</small></div></div>
+    <div class="item"><span class="ie">🏕</span><div class="it"><b>DAY13〜18は強化合宿</b>
+      <small>チームを組んで課題曲に挑む。チーム練習は伸びが大きいが体力を大きく使う。</small></div></div>
+    <div class="item"><span class="ie">💔</span><div class="it"><b>候補生は1人ずつ脱落していく</b>
+      <small>仲良くなったやつほど、見送りはつらい。好感度は最後まで効いてくる。</small></div></div>
+    <div class="item"><span class="ie">✨</span><div class="it"><b>スキル14種</b>
+      <small>PERFECTを重ねると習得。練習の伸びや審査の点数が上がる。</small></div></div>
+    <div class="item"><span class="ie">💠</span><div class="it"><b>引きつぎ</b>
+      <small>挑戦が終わるとプロジェクトポイント獲得。強化メニューで次の挑戦を有利にできる。</small></div></div>
+  </div>
+  <div class="smallnote">入力：数字キー／小数点は「.」／分数は「a/b」で 3/4 のように（約分すること）。<br>PCならキーボード入力可（Enterで解答）。</div>
+  <div style="height:12px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
+}
+
+/* ================= キャラメイク ================= */
+let CR = { av: 0, type: 3 };
+function renderCreate() {
+  $("avPick").innerHTML = AVATARS.map((a, i) =>
+    `<button class="pk ${i === CR.av ? "on" : ""}" data-i="${i}"><img src="${a.img}" alt=""></button>`).join("");
+  $("typePick").innerHTML = TYPES.map((t, i) =>
+    `<button class="tp ${i === CR.type ? "on" : ""}" data-i="${i}">
+      <span class="tpe">${t.e}</span><span><b>${t.n}</b><small>${t.d}</small></span></button>`).join("");
+  $("avPick").querySelectorAll(".pk").forEach(b => b.onclick = () => { CR.av = +b.dataset.i; sfx.tap(); renderCreate(); });
+  $("typePick").querySelectorAll(".tp").forEach(b => b.onclick = () => { CR.type = +b.dataset.i; sfx.tap(); renderCreate(); });
+  show("scrCreate");
+}
+$("btnBackTitle").onclick = () => { sfx.tap(); renderTitle(); };
+$("btnStart").onclick = () => {
+  const name = ($("nameIn").value || "はると").trim().slice(0, 6);
+  const up = DB.meta.up, t = TYPES[CR.type];
+  const base = 5 + up.st * 5;
+  G = {
+    name, av: CR.av, type: CR.type,
+    day: 1, stam: 100 + (t.stam || 0) + up.stam * 10, maxStam: 100 + (t.stam || 0) + up.stam * 10,
+    cond: 2, fans: up.fan * 500,
+    st: { vo: base, da: base, ex: base, tk: base, me: base },
+    aff: { shion: up.aff * 10, ren: up.aff * 10, haru: up.aff * 10, kai: up.aff * 10, sora: up.aff * 10 },
+    pf: { pi: 0, frac: 0, ratio: 0, gyaku: 0, kufuu: 0 },
+    skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
+    outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
+    alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
+    auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
+  };
+  DB.run = G; save(); sfx.clear();
+  renderMain();
+  setTimeout(() => showEvent({
+    c: "tsukasa",
+    t: `「20,000人。そのうち、ここに残っているのは6人。\nそして、デビューできるのは——2人だ。\n\n${esc(name)}。おまえに聞く。\n覚悟はあるか」`,
+    ch: [{ t: "「あります」", fx: { st: { me: 3 } } }]
+  }), 400);
+};
+
+/* ================= メイン ================= */
+function nextAud() { return AUDS.find(a => a.d >= G.day); }
+const inCamp = () => G.day >= CAMP[0] && G.day <= CAMP[1];
+function statMult(key) { const t = TYPES[G.type]; return (t.boost && t.boost[key]) || 1; }
+function skillFx() {
+  const f = { g: {}, all: 0, aud: 0, fan: 0, st: 0, shield: 0, iron: 0 };
+  if (!G || !G.skills) return f;
+  G.skills.forEach(id => {
+    const s = SKILLS.find(x => x.id === id); if (!s) return;
+    if (s.fx.g) for (const k in s.fx.g) f.g[k] = (f.g[k] || 0) + s.fx.g[k];
+    ["all", "aud", "fan", "st", "shield", "iron"].forEach(k => { if (s.fx[k]) f[k] += s.fx[k]; });
+  });
+  return f;
+}
+function renderMain() {
+  if (!G) return renderTitle();
+  const a = nextAud();
+  $("mDay").textContent = G.day;
+  $("mPhase").textContent = PHASE(G.day);
+  $("mNext").innerHTML = a
+    ? (a.d === G.day ? `<b>本日 ${a.n}</b>` : `${a.n}まで <b>あと${a.d - G.day}日</b>`) + (inCamp() ? `<div class="camp">強化合宿中</div>` : "")
+    : "";
+  $("mName").textContent = G.name;
+  const avg = STATS.reduce((s, x) => s + G.st[x.k], 0) / 5;
+  $("mTitleTag").textContent = avg >= 85 ? "優勝候補" : avg >= 70 ? "上位常連" : avg >= 55 ? "注目の候補生" : avg >= 35 ? "候補生" : "研修生";
+  $("mAv").src = AVATARS[G.av].img;
+  $("mOutfit").textContent = G.outfit ? OUTFITS.find(o => o.id === G.outfit).e : "";
+  $("mStam").style.width = clamp(G.stam / G.maxStam * 100, 0, 100) + "%";
+  $("mStam").style.background = G.stam < 25 ? "#e63946" : G.stam < 55 ? "#ffcf5c" : "#3ddc97";
+  $("mStamN").textContent = Math.round(G.stam);
+  const cd = CONDS[G.cond];
+  $("mCond").textContent = cd.n; $("mCond").style.background = cd.c;
+  $("mFans").textContent = G.fans.toLocaleString();
+  $("mWarn").classList.toggle("hide", !G.warn);
+
+  $("mStats").innerHTML = STATS.map(s => {
+    const v = Math.round(G.st[s.k]), rk = rank(v);
+    return `<div class="strow"><span class="sn">${s.n}</span>
+      <span class="rk" style="background:${rk[2]}">${rk[1]}</span>
+      <div class="gauge"><u style="width:${v}%;background:${s.c}"></u></div>
+      <span class="sv">${v}</span></div>`;
+  }).join("");
+
+  if (a && a.d === G.day) {
+    $("mCmds").innerHTML = `<button class="cmd aud wide" data-c="aud">
+      <span class="ce">🎬</span><span><b>${a.n} へ</b><small>${a.sub}</small></span></button>`;
+  } else {
+    const fx = skillFx(), extra = inCamp() ? 4 : 0;
+    $("mCmds").innerHTML = CMDS.map(c => {
+      const cost = Math.max(6, c.st + fx.st + extra);
+      const low = G.stam < cost;
+      return `<button class="cmd" data-c="${c.id}">
+        <span class="ce">${c.e}</span><span><b>${c.n}</b><small>${c.s}</small>
+        <span class="cost" style="${low ? "color:#e63946" : ""}">体力 −${cost}</span></span></button>`;
+    }).join("") +
+      (inCamp() && G.team ? `<button class="cmd team wide" data-c="teamp"><span class="ce">🎬</span>
+        <span><b>チーム練習</b><small>${G.team.map(i => CANDS[i].n).join("・")} と課題曲を合わせる　体力 −34</small></span></button>` : "") +
+      `<button class="cmd rest" data-c="rest"><span class="ce">😴</span><span><b>休養</b><small>体力を大きく回復</small></span></button>
+       <button class="cmd talk" data-c="talk"><span class="ce">🤝</span><span><b>交流</b><small>候補生と話す</small></span></button>`;
+  }
+  $("mCmds").querySelectorAll(".cmd").forEach(b => b.onclick = () => doCmd(b.dataset.c));
+
+  $("mChars").innerHTML = CAND_IDS.map(id => {
+    const c = CANDS[id], v = clamp(G.aff[id], 0, 100), out = !G.alive.includes(id);
+    const isTeam = G.team && G.team.includes(id);
+    return `<div class="chip ${out ? "out" : ""}" data-c="${id}">
+      <img src="${c.img}" alt="${c.n}">
+      <div class="cn">${isTeam ? "◆" : ""}${c.n}</div>
+      ${out ? `<div class="outT">脱落</div>` : `<div class="hb"><u style="width:${v}%;background:${c.c}"></u></div>`}</div>`;
+  }).join("");
+  $("mChars").querySelectorAll(".chip").forEach(b => b.onclick = () => charInfo(b.dataset.c));
+
+  show("scrMain");
+  save();
+}
+$("mFoot").querySelectorAll(".fb").forEach(b => b.onclick = () => {
+  sfx.tap();
+  const a = b.dataset.a;
+  if (a === "shop") openShop();
+  else if (a === "zukan") openZukan();
+  else if (a === "skill") openSkills();
+  else { save(); renderTitle(); }
+});
+
+function charInfo(id) {
+  const c = CANDS[id], v = Math.round(G.aff[id]);
+  const nb = (BONDS[id] || []).find(b => v < b.at);
+  const out = !G.alive.includes(id);
+  openSheet(`<div class="ptitle">${c.n}<small>${c.full}　／　${c.role}</small></div>
+    <div style="display:flex;gap:12px;align-items:center">${pImg(id, 96, 116)}
+    <div style="flex:1">
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:5px">好感度 <b style="font-size:22px;color:${c.c}">${v}</b></div>
+      <div class="gauge"><u style="width:${clamp(v, 0, 100)}%;background:${c.c}"></u></div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-top:8px;line-height:1.7">
+        ${out ? "このオーディションからは去った。" : nb ? `つぎの特別イベントまで あと ${nb.at - v}` : "すべての特別イベントを見た"}</div>
+    </div></div>
+    <div style="height:14px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
+}
+
+/* ================= コマンド ================= */
+function doCmd(c) {
+  sfx.tap();
+  if (c === "aud") return startAudition();
+  if (c === "rest") return doRest();
+  if (c === "talk") return openTalkSelect();
+  if (c === "teamp") return doTeamPractice();
+  const cmd = CMDS.find(x => x.id === c);
+  const fx = skillFx();
+  const cost = Math.max(6, cmd.st + fx.st + (inCamp() ? 4 : 0));
+  if (G.stam < cost) {
+    if (!confirm("体力が足りない。無理をすると失敗しやすくなる。それでも練習する？")) return;
+    G.over = true;
+  } else G.over = false;
+  G.stam = Math.max(0, G.stam - cost);
+  startQuiz({
+    mode: "lesson", genre: cmd.g, lv: lessonLv(), total: 8,
+    title: `${cmd.e} ${cmd.n}`,
+    onEnd: r => finishLesson(cmd, r),
+  });
+}
+function lessonLv() {
+  const d = G.day;
+  return d <= 5 ? 1 : d <= 11 ? 2 : d <= 18 ? 3 : d <= 25 ? 4 : 5;
+}
+function doRest() {
+  const heal = ri(40, 60) + (G.cond >= 3 ? 10 : 0);
+  G.stam = Math.min(G.maxStam, G.stam + heal);
+  if (Math.random() < .45) G.cond = clamp(G.cond + 1, 0, 4);
+  toast(`😴 休養した　体力 +${heal}`);
+  endDay();
+}
+function doTeamPractice() {
+  const cost = 34;
+  if (G.stam < cost && !confirm("体力が足りない。それでもチーム練習する？")) return;
+  G.stam = Math.max(0, G.stam - cost);
+  const genre = pick(["frac", "ratio", "pi"]);
+  startQuiz({
+    mode: "lesson", genre, lv: lessonLv(), total: 10,
+    title: `🎬 チーム練習（${G.team.map(i => CANDS[i].n).join("・")}）`,
+    onEnd: r => {
+      const fx = skillFx();
+      const mult = CONDS[G.cond].m * (1 + fx.all) * 1.35;
+      const base = 2.5 + r.score / 13;
+      const gains = [];
+      ["da", "ex"].forEach(k => { const d = addStat(k, gainFor(k, base * mult)); if (d) gains.push([STATS.find(s => s.k === k).n, d]); });
+      const d3 = addStat("me", gainFor("me", base * mult * .5));
+      if (d3) gains.push(["精神力", d3]);
+      G.team.forEach(i => { G.aff[i] = clamp(G.aff[i] + 8, 0, 100); });
+      G.totalQ += r.total; G.totalOK += r.correct;
+      G.bestCombo = Math.max(G.bestCombo, r.best);
+      if (r.score >= 95 && r.correct === r.total) { G.pf[genre]++; G.perfectLesson++; }
+      showResult({
+        title: "🎬 チーム練習", r, gains, fans: 0,
+        extra: `<div class="smallnote">${G.team.map(i => CANDS[i].n).join("・")} の好感度 +8</div>`,
+        after: () => checkSkills(() => endDay()),
+      });
+    },
+  });
+}
+
+function openTalkSelect() {
+  const alive = G.alive;
+  openSheet(`<div class="ptitle">誰と話す？<small>好感度30／60／90で特別イベント</small></div>
+   <div class="list">${alive.map(id => {
+    const c = CANDS[id];
+    return `<button class="item" data-c="${id}">${`<img class="ii" src="${c.img}" alt="">`}
+      <div class="it"><b>${c.n}${G.team && G.team.includes(id) ? " ◆チーム" : ""}</b><small>${c.role}　好感度 ${Math.round(G.aff[id])}</small></div>
+      <span style="font-size:15px;color:var(--ink3)">▶</span></button>`;
+  }).join("")}</div>
+   <div style="height:12px"></div><button class="btn dark" onclick="closeSheet()">やめる</button>`);
+  $("sheetPanel").querySelectorAll(".item").forEach(b => b.onclick = () => { closeSheet(); doTalk(b.dataset.c); });
+}
+function doTalk(id) {
+  const t = pick(TALKS[id]);
+  G.stam = Math.min(G.maxStam, G.stam + 10);
+  showEvent({
+    c: id, t: t.t,
+    ch: t.c.map(o => {
+      const bonus = (G.team && G.team.includes(id)) ? 3 : 0;
+      return { t: o.t, fx: { aff: { [id]: o.a + bonus }, silent: true }, after: () => { toast(`💬 ${CANDS[id].n}の好感度 +${o.a + bonus}`); endDay(); } };
+    })
+  });
+}
+
+/* ================= 練習結果 ================= */
+function gainFor(key, base) {
+  let g = base * statMult(key);
+  const cur = G.st[key];
+  if (cur >= 90) g *= .35; else if (cur >= 80) g *= .55; else if (cur >= 65) g *= .8;
+  return g;
+}
+function addStat(key, v) {
+  const before = Math.round(G.st[key]);
+  G.st[key] = clamp(G.st[key] + v, 0, 100);
+  return Math.round(G.st[key]) - before;
+}
+function finishLesson(cmd, r) {
+  const fx = skillFx();
+  let mult = CONDS[G.cond].m * (1 + (fx.g[cmd.g] || 0) + fx.all) * (1 + DB.meta.up.eff * .1);
+  if (G.items.omamori > 0) { mult *= 1.6; G.items.omamori--; toast("🍱 差し入れの力！ 伸び 1.6倍"); }
+  if (G.over) mult *= .6;
+  const base = 2.5 + r.score / 13;
+  const gains = [];
+  const d1 = addStat(cmd.main, gainFor(cmd.main, base * mult));
+  gains.push([STATS.find(s => s.k === cmd.main).n, d1]);
+  if (cmd.sub === "*") {
+    STATS.forEach(s => { if (s.k !== cmd.main) { const d = addStat(s.k, gainFor(s.k, base * mult * .32)); if (d) gains.push([s.n, d]); } });
+  } else {
+    const d2 = addStat(cmd.sub, gainFor(cmd.sub, base * mult * .45));
+    if (d2) gains.push([STATS.find(s => s.k === cmd.sub).n, d2]);
+  }
+  let fans = 0;
+  if (r.score >= 70) { fans = Math.round((r.score - 60) * ri(3, 7) * (1 + fx.fan)); G.fans += fans; }
+  if (r.score >= 95 && r.correct === r.total) { G.pf[cmd.g]++; G.perfectLesson++; }
+  G.totalQ += r.total; G.totalOK += r.correct;
+  G.bestCombo = Math.max(G.bestCombo, r.best);
+  if (G.over && Math.random() < .35) G.cond = clamp(G.cond - 1, 0, 4);
+  showResult({ title: `${cmd.e} ${cmd.n}`, r, gains, fans, after: () => checkSkills(() => endDay()) });
+}
+
+/* ================= 結果パネル ================= */
+function scoreRank(s) { return s >= 95 ? ["PERFECT", "#ffcf5c"] : s >= 85 ? ["EXCELLENT", "#ff9f43"] : s >= 70 ? ["GOOD", "#3ddc97"] : s >= 50 ? ["まずまず", "#4cc9f0"] : ["もう一度", "#7b7b95"]; }
+function showResult(o) {
+  const [rn, rc] = scoreRank(o.r.score);
+  const miss = o.r.misses.slice(0, 5).map(m => `<div class="missRow"><span>${m.q}</span><em>${MATH.ansHtml(m.a)}</em></div>`).join("");
+  $("resPanel").innerHTML = `
+    <div class="resHead">
+      <div class="lbl">${o.title}</div>
+      <div class="resScore">${o.r.score}<small> 点</small></div>
+      <div class="resRank" style="background:${rc}">${rn}</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-top:8px">正解 ${o.r.correct}/${o.r.total}　最大コンボ ${o.r.best}　平均 ${o.r.avgTime}秒</div>
+    </div>
+    <div class="gains">${o.gains.map(g => `<div class="gain"><span>${g[0]}</span><b>+${g[1]}</b></div>`).join("")}
+      ${o.fans ? `<div class="gain"><span>📈 注目度</span><b>+${o.fans.toLocaleString()}</b></div>` : ""}</div>
+    ${o.extra || ""}
+    ${miss ? `<div class="missBox"><div class="mt">✏️ MISSED</div>${miss}</div>` : `<div class="smallnote">ノーミス。文句なし。</div>`}
+    <button class="btn" id="resOk">次へ</button>`;
+  $("ovResult").classList.add("on");
+  $("resOk").onclick = () => { sfx.tap(); $("ovResult").classList.remove("on"); o.after(); };
+}
+
+/* ================= スキル ================= */
+function checkSkills(done) {
+  const got = SKILLS.filter(s => !G.skills.includes(s.id) && s.chk(G));
+  if (!got.length) return done();
+  const s = got[0];
+  G.skills.push(s.id);
+  if (!DB.meta.skills.includes(s.id)) DB.meta.skills.push(s.id);
+  sfx.skill();
+  $("sfBox").innerHTML = `<div class="sfLabel">S K I L L　U N L O C K E D</div>
+    <div class="sfStar">✨</div><div class="sfName">${s.e} ${s.n}</div><div class="sfDesc">${s.d}</div>`;
+  $("skillFlash").classList.add("on");
+  setTimeout(() => { $("skillFlash").classList.remove("on"); checkSkills(done); }, 2200);
+}
+
+/* ================= 1日の終わり ================= */
+function endDay() {
+  for (const id of G.alive) {
+    const b = (BONDS[id] || []).find(x => G.aff[id] >= x.at && !G.bonds.includes(id + x.at));
+    if (b) { G.bonds.push(id + b.at); return showEvent({ c: id, t: b.t, ch: [{ t: "▶", fx: b.fx, after: () => afterDay() }] }); }
+  }
+  if (Math.random() < .34 && G.day < TOTAL_D) {
+    const pool = EVENTS.filter(e => !G.evseen.includes(e.id) && (!CANDS[e.c] || G.alive.includes(e.c)));
+    if (pool.length) {
+      const e = pick(pool);
+      G.evseen.push(e.id);
+      if (!DB.meta.evseen.includes(e.id)) DB.meta.evseen.push(e.id);
+      return showEvent({ c: e.c, t: e.t, ch: e.ch.map(c => ({ t: c.t, fx: c.fx, after: () => afterDay() })) });
+    }
+  }
+  afterDay();
+}
+function afterDay() {
+  if (Math.random() < .5) {
+    let d = Math.random() < .5 ? -1 : 1;
+    if (G.stam < 30) d = -1;
+    if (G.stam > 80 && Math.random() < .6) d = 1;
+    G.cond = clamp(G.cond + d, 0, 4);
+  }
+  G.alive.forEach(id => { G.aff[id] = Math.max(0, G.aff[id] - .6); });
+  G.day++;
+  if (G.day > TOTAL_D) return ending("time");
+  save();
+  /* 合宿入り */
+  if (G.day === CAMP[0] && !G.team) return campStart();
+  const a = nextAud();
+  if (a && a.d === G.day) {
+    return showEvent({
+      c: "kanade",
+      t: `「明日はいよいよ『${a.n}』。\n……${esc(G.name)}くん、ここまでよくやってきたね。\n\n見せてきなよ、全部」`,
+      ch: [{ t: "会場へ", fx: { cond: 1 }, after: () => renderMain() }]
+    });
+  }
+  renderMain();
+}
+
+/* ================= 合宿 ================= */
+function campStart() {
+  showEvent({
+    c: "tsukasa",
+    t: "「今日から6日間、強化合宿だ。\n3次審査の課題はチーム対抗の課題曲。\n\n……チームは、おまえたちで決めろ。\nその選択も、審査の対象だ」",
+    ch: [{ t: "チームを組む", fx: {}, after: () => pickTeam() }]
+  });
+}
+function pickTeam() {
+  const sel = [];
+  const render = () => {
+    openSheet(`<div class="ptitle">チームを組む<small>2人えらぶ。好感度が高いほどチーム力が上がる</small></div>
+    <div class="list">${G.alive.map(id => {
+      const c = CANDS[id], on = sel.includes(id);
+      return `<button class="item" data-c="${id}" style="${on ? "box-shadow:0 0 0 1.5px var(--gold) inset" : ""}">
+        <img class="ii" src="${c.img}" alt=""><div class="it"><b>${on ? "◆ " : ""}${c.n}</b>
+        <small>${c.role}　好感度 ${Math.round(G.aff[id])}</small></div></button>`;
+    }).join("")}</div>
+    <div style="height:12px"></div>
+    <button class="btn" id="teamOk" ${sel.length === 2 ? "" : "disabled"}>このチームで行く</button>`);
+    $("sheetPanel").querySelectorAll(".item").forEach(b => b.onclick = () => {
+      const id = b.dataset.c;
+      if (sel.includes(id)) sel.splice(sel.indexOf(id), 1);
+      else if (sel.length < 2) sel.push(id);
+      sfx.tap(); render();
+    });
+    const ok = $("teamOk");
+    if (ok) ok.onclick = () => {
+      G.team = [...sel]; closeSheet(); sfx.clear(); save();
+      showEvent({
+        c: sel[0],
+        t: `（${CANDS[sel[0]].n}と${CANDS[sel[1]].n}とチームを組んだ）\n\n「……よろしく。\n6日で、仕上げる」`,
+        ch: [{ t: "▶", fx: { aff: { [sel[0]]: 5, [sel[1]]: 5 }, silent: true }, after: () => renderMain() }]
+      });
+    };
+  };
+  render();
+}
+
+/* ================= イベント ================= */
+function showEvent(e) {
+  const p = PERSON(e.c);
+  if (G && !G.done) renderMain();
+  $("evPanel").innerHTML = `
+    <div class="evTop"><img src="${p.img}" alt=""><div class="evName">${p.n}</div></div>
+    <div class="evBody">${rep(e.t).replace(/\n/g, "<br>")}</div>
+    <div class="evChoices">${e.ch.map((ch, i) => `<button class="evc" data-i="${i}">${rep(ch.t)}</button>`).join("")}</div>`;
+  $("ovEvent").classList.add("on");
+  $("evPanel").querySelectorAll(".evc").forEach(b => b.onclick = () => {
+    sfx.tap();
+    const ch = e.ch[+b.dataset.i];
+    $("ovEvent").classList.remove("on");
+    applyFx(ch.fx || {});
+    if (ch.after) ch.after(); else renderMain();
+  });
+}
+function applyFx(f) {
+  const msgs = [];
+  if (f.stam) { G.stam = clamp(G.stam + f.stam, 0, G.maxStam); msgs.push(`体力 ${f.stam > 0 ? "+" : ""}${f.stam}`); }
+  if (f.fans) { G.fans += f.fans; msgs.push(`📈 注目度 +${f.fans.toLocaleString()}`); }
+  if (f.cond) { G.cond = clamp(G.cond + f.cond, 0, 4); msgs.push(`調子 ${f.cond > 0 ? "アップ" : "ダウン"}`); }
+  if (f.st) for (const k in f.st) { const d = addStat(k, f.st[k]); if (d) msgs.push(`${STATS.find(s => s.k === k).n} +${d}`); }
+  if (f.aff) for (const k in f.aff) { G.aff[k] = clamp(G.aff[k] + f.aff[k], 0, 100); if (!f.silent) msgs.push(`${CANDS[k].n} 好感度 ${f.aff[k] > 0 ? "+" : ""}${f.aff[k]}`); }
+  if (f.msg) toast(f.msg);
+  if (msgs.length && !f.silent) toast(msgs.join("　"));
+  save();
+}
+
+/* ================= クイズ・エンジン ================= */
+let Q = null;
+function startQuiz(cfg) {
+  const fx = skillFx();
+  Q = {
+    ...cfg, idx: 0, correct: 0, combo: 0, best: 0, sum: 0, misses: [], times: [],
+    input: "", shield: fx.shield, lock: false, t0: 0, limit: 10, raf: 0, startAll: performance.now(),
+    timeMul: 1 + (G && G.items.note ? .3 : 0) + (cfg.mode === "drill" ? .5 : 0), lastQ: "",
+  };
+  $("scrQuiz").classList.toggle("stage", cfg.mode === "aud");
+  $("qGenre").textContent = cfg.title;
+  $("qTotal").textContent = cfg.total;
+  $("qJudges").classList.toggle("hide", cfg.mode !== "aud");
+  if (cfg.mode === "aud") renderJudges(0);
+  buildPad();
+  show("scrQuiz");
+  nextQ();
+}
+function buildPad() {
+  const keys = ["7", "8", "9", "back", "4", "5", "6", "/", "1", "2", "3", ".", "0", "clear", "ok"];
+  $("pad").innerHTML = keys.map(k => {
+    if (k === "back") return `<button class="key fn" data-k="back">⌫</button>`;
+    if (k === "clear") return `<button class="key fn" data-k="clear">CL</button>`;
+    if (k === "ok") return `<button class="key ok w2" data-k="ok">解答</button>`;
+    if (k === "/") return `<button class="key fn" data-k="/">a/b</button>`;
+    return `<button class="key" data-k="${k}">${k}</button>`;
+  }).join("");
+  $("pad").querySelectorAll(".key").forEach(b => b.onclick = () => keyIn(b.dataset.k));
+}
+function keyIn(k) {
+  if (!Q || Q.lock) return;
+  sfx.tap();
+  if (k === "back") Q.input = Q.input.slice(0, -1);
+  else if (k === "clear") Q.input = "";
+  else if (k === "ok") return submit();
+  else if (Q.input.length < 10) {
+    if (k === "." && (Q.input.includes(".") || !Q.input)) return;
+    if (k === "/" && (Q.input.includes("/") || !Q.input)) return;
+    Q.input += k;
+  }
+  drawInput();
+}
+function drawInput() { $("qVal").textContent = Q.input; $("qInput").className = ""; }
+function nextQ() {
+  if (Q.idx >= Q.total) return endQuiz();
+  let q, tries = 0;
+  do { q = MATH.gen(Q.mode === "aud" ? pick(["pi", "frac", "ratio", "gyaku", "kufuu"]) : Q.genre, Q.lv); tries++; }
+  while (q.q === Q.lastQ && tries < 8);
+  Q.lastQ = q.q; Q.cur = q; Q.input = "";
+  $("qNo").textContent = Q.idx + 1;
+  $("qTag").textContent = q.tag;
+  $("qText").innerHTML = q.q;
+  $("qText").className = q.small ? "small" : "";
+  $("qNote").textContent = q.note || "";
+  $("qUnit").textContent = q.a.unit || "";
+  $("qCombo").textContent = Q.combo >= 2 ? `${Q.combo} COMBO` : "";
+  drawInput();
+  Q.limit = q.time * Q.timeMul;
+  Q.t0 = performance.now(); Q.lock = false;
+  cancelAnimationFrame(Q.raf); tickQ();
+}
+function tickQ() {
+  if (!Q || Q.lock) return;
+  const el = (performance.now() - Q.t0) / 1000;
+  const left = Math.max(0, 1 - el / Q.limit);
+  const bar = $("qTimer");
+  bar.style.width = (left * 100) + "%";
+  bar.classList.toggle("warn", left < .3);
+  if (left <= 0) return judge(false, true);
+  Q.raf = requestAnimationFrame(tickQ);
+}
+function submit() { if (!Q.input) return; judge(MATH.check(Q.input, Q.cur.a), false); }
+function judge(ok, timeout) {
+  if (Q.lock) return;
+  Q.lock = true; cancelAnimationFrame(Q.raf);
+  const el = (performance.now() - Q.t0) / 1000;
+  Q.times.push(Math.min(el, Q.limit));
+  let sc = 0, label = "", color = "#ffcf5c";
+  if (ok) {
+    Q.correct++;
+    const r = el / Q.limit;
+    if (r <= .3) { sc = 100; label = "PERFECT!"; color = "#ffcf5c"; sfx.great(); }
+    else if (r <= .55) { sc = 88; label = "GREAT!"; color = "#ff9f43"; sfx.good(); }
+    else if (r <= .8) { sc = 74; label = "GOOD!"; color = "#3ddc97"; sfx.good(); }
+    else { sc = 58; label = "OK"; color = "#4cc9f0"; sfx.good(); }
+    Q.combo++; Q.best = Math.max(Q.best, Q.combo);
+    if (Q.combo >= 3) sc = Math.min(100, sc + Math.min(10, Q.combo));
+    $("qInput").className = "ok";
+  } else {
+    if (Q.shield > 0) { Q.shield--; label = "SAVE!"; color = "#8b7bff"; }
+    else { Q.combo = 0; label = timeout ? "TIME UP" : "MISS"; color = "#e63946"; }
+    sfx.bad();
+    Q.misses.push({ q: Q.cur.q.replace(/<br>/g, " "), a: Q.cur.a });
+    $("qInput").className = "ng";
+  }
+  Q.sum += sc;
+  const sub = ok ? "" : `<small>正解　${MATH.ansHtml(Q.cur.a)}${Q.cur.a.unit || ""}</small>`;
+  $("qCombo").textContent = Q.combo >= 2 ? `${Q.combo} COMBO` : "";
+  $("qCombo").className = Q.combo >= 3 ? "hot" : "";
+  $("qFb").innerHTML = `<div class="fbi" style="color:${color}">${label}${sub}</div>`;
+  $("qFb").classList.add("on");
+  if (Q.mode === "aud") renderJudges(Q.sum / Math.max(1, Q.idx + 1));
+  Q.idx++;
+  setTimeout(() => { $("qFb").classList.remove("on"); nextQ(); }, ok ? 600 : 1500);
+}
+function endQuiz() {
+  cancelAnimationFrame(Q.raf);
+  const score = Math.round(Q.sum / Q.total);
+  const avgTime = Math.round(Q.times.reduce((a, b) => a + b, 0) / Q.total * 10) / 10;
+  const totalTime = Math.round((performance.now() - Q.startAll) / 100) / 10;
+  const r = { score, correct: Q.correct, total: Q.total, best: Q.best, misses: Q.misses, avgTime, totalTime };
+  const cb = Q.onEnd; Q = null; cb(r);
+}
+document.addEventListener("keydown", ev => {
+  if (!Q || !$("scrQuiz").classList.contains("on")) return;
+  const k = ev.key;
+  if (/^[0-9]$/.test(k)) keyIn(k);
+  else if (k === ".") keyIn(".");
+  else if (k === "/") keyIn("/");
+  else if (k === "Backspace") { ev.preventDefault(); keyIn("back"); }
+  else if (k === "Enter") keyIn("ok");
+});
+
+/* ================= 審査 ================= */
+function renderJudges(avg) {
+  $("qJudges").innerHTML = JUDGES.map((j, i) => {
+    const v = clamp(avg - i * 3 + 6, 0, 100);
+    return `<div class="jd ${v > 62 ? "good" : ""}"><img src="${j.img}" alt="${j.n}">
+      <div class="jn">${j.n}</div><div class="jb"><u style="width:${v}%"></u></div></div>`;
+  }).join("");
+}
+function startAudition() {
+  const a = nextAud(), idx = AUDS.indexOf(a);
+  const rivalLine = idx === 4
+    ? { c: "shion", t: "「……ここまで来たな。\n\n最後だから、言っておく。\nおまえと出会えて、よかった。\n\n……本気で来い。手加減したら、許さない」" }
+    : { c: "ren", t: "「（レンが目も合わせずに通り過ぎる）\n\n……落ちるなよ。\n俺が勝つのは、全力のおまえだ」" };
+  showEvent({
+    c: rivalLine.c, t: rivalLine.t,
+    ch: [{ t: "ステージへ", fx: {}, after: () => startQuiz({
+      mode: "aud", lv: a.lv, total: a.q, title: `🎬 ${a.n}`,
+      onEnd: r => finishAudition(a, idx, r)
+    }) }]
+  });
+}
+function judgeScore(j, quiz, fx) {
+  let statPart = 0;
+  for (const k in j.w) statPart += G.st[k] * j.w[k];
+  if (!fx.iron) statPart *= (1 - clamp((60 - G.st.me) / 100, 0, .25));
+  const outfitB = G.outfit ? OUTFITS.find(o => o.id === G.outfit).ex * .15 : 0;
+  return Math.round(statPart * .6 + quiz * .4 + fx.aud + outfitB);
+}
+function finishAudition(a, idx, r) {
+  const fx = skillFx();
+  const each = JUDGES.map(j => ({ j, s: judgeScore(j, r.score, fx) }));
+  const total = Math.round(each.reduce((s, e) => s + e.s, 0) / 3);
+  /* チームボーナス（3次審査） */
+  let teamB = 0;
+  if (idx === 2 && G.team) {
+    teamB = Math.round(G.team.reduce((s, i) => s + G.aff[i], 0) / 20);
+    each.forEach(e => e.s += teamB);
+  }
+  const finalTotal = total + teamB;
+  const pass = finalTotal >= a.need;
+
+  /* ライバルのスコア */
+  const rivals = Object.keys(a.base).filter(id => G.alive.includes(id))
+    .map(id => ({ id, n: CANDS[id].n, img: CANDS[id].img, s: a.base[id] + ri(-4, 4) }));
+  const board = [...rivals, { id: "me", n: G.name, img: AVATARS[G.av].img, s: finalTotal, me: true }]
+    .sort((x, y) => y.s - x.s);
+  const myRank = board.findIndex(b => b.me) + 1;
+
+  G.totalQ += r.total; G.totalOK += r.correct;
+  G.bestCombo = Math.max(G.bestCombo, r.best);
+  const fans = Math.round((pass ? 1200 : 400) * (1 + idx * .6) * (1 + (finalTotal - a.need) / 100) * (1 + fx.fan));
+  G.fans += Math.max(0, fans);
+  G.auds.push({ n: a.n, score: finalTotal, rank: myRank, pass });
+
+  if (pass) { confetti(40); sfx.clear(); } else sfx.bad();
+
+  const cmt = e => (JCOMMENT[e.j.id].find(c => e.s >= c[0]) || JCOMMENT[e.j.id][3])[1];
+  $("resPanel").innerHTML = `
+    <div class="resHead">
+      <div class="lbl">${a.n}　／　${a.sub}</div>
+      <div class="resScore">${finalTotal}<small> 点</small></div>
+      <div class="resRank" style="background:${pass ? "#ffcf5c" : "#e63946"}">${pass ? "合格ライン突破" : `合格ライン ${a.need}点に届かず`}</div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:8px">この審査の順位　<b style="color:var(--gold);font-size:17px">${myRank}位</b> / ${board.length}人</div>
+    </div>
+    ${each.map(e => `<div class="judgeRow"><img src="${e.j.img}" alt="">
+      <div class="jt"><b>${e.j.n}（${e.j.role}）</b><small>${cmt(e)}</small></div>
+      <div class="js" style="color:${e.s >= 75 ? "#ffcf5c" : e.s >= 60 ? "#3ddc97" : "#e63946"}">${e.s}</div></div>`).join("")}
+    <div class="gains" style="margin-top:10px">
+      ${teamB ? `<div class="gain"><span>チームボーナス（${G.team.map(i => CANDS[i].n).join("・")}）</span><b>+${teamB}</b></div>` : ""}
+      <div class="gain"><span>計算パフォーマンス</span><b>${r.score}点 → 各審査員に40%反映</b></div>
+      <div class="gain"><span>📈 注目度</span><b>+${Math.max(0, fans).toLocaleString()}</b></div>
+    </div>
+    <div class="missBox"><div class="mt">RANKING</div>
+      ${board.map((b, i) => `<div class="missRow" style="${b.me ? "color:var(--gold)" : ""}">
+        <span>${i + 1}位　${esc(b.n)}${b.me ? "（きみ）" : ""}</span><em>${b.s}</em></div>`).join("")}</div>
+    <div class="smallnote">正解 ${r.correct}/${r.total}　最大コンボ ${r.best}</div>
+    <button class="btn" id="resOk">合格者発表へ</button>`;
+  $("ovResult").classList.add("on");
+  $("resOk").onclick = () => {
+    sfx.tap(); $("ovResult").classList.remove("on");
+    checkSkills(() => announce(a, idx, board, pass));
+  };
+}
+
+/* ================= 合格者発表 ================= */
+function announce(a, idx, board, pass) {
+  const isFinal = idx === 4;
+  const dropId = a.drop && a.drop !== "final" ? a.drop : null;
+  show("scrAnn");
+  $("annTitle").textContent = isFinal ? "最 終 結 果 発 表" : "合 格 者 発 表";
+  $("annSub").innerHTML = "";
+  $("annList").innerHTML = "";
+  $("annBtn").classList.add("hide");
+
+  const lines = isFinal
+    ? ["「これより、最終結果を発表する」", "「デビューするのは、2人」", "「……名前を呼ばれた者だけが、ステージに立てる」"]
+    : ["「これより、合格者を発表する」", "「呼ばれなかった者は、ここで終わりだ」"];
+
+  let li = 0;
+  const step = () => {
+    if (li < lines.length) {
+      $("annSub").innerHTML = lines[li];
+      sfx.drum(); li++;
+      return setTimeout(step, 1400);
+    }
+    revealRows();
+  };
+  setTimeout(step, 500);
+
+  function revealRows() {
+    /* 発表順：下位から呼ぶ（緊張感） */
+    let order, passIds;
+    if (isFinal) {
+      passIds = board.slice(0, 2).map(b => b.id);
+    } else {
+      passIds = board.map(b => b.id).filter(id => id !== dropId);
+    }
+    order = [...board].reverse();
+    $("annSub").innerHTML = isFinal ? "「デビューは、この2人だ」" : "";
+    let i = 0;
+    const next = () => {
+      if (i >= order.length) return finish();
+      const b = order[i];
+      const ok = passIds.includes(b.id);
+      let label = ok ? (isFinal ? "デビュー" : "合格") : "脱落";
+      let cls = ok ? "pass " : "out ";
+      if (b.me && !isFinal && !pass) {
+        /* 合格ラインに届かなかった本人 */
+        if (G.warn) { label = "脱落"; cls = "out "; }
+        else { label = "崖っぷち"; cls = ""; }
+      }
+      const row = document.createElement("div");
+      row.className = "annRow in " + cls + (b.me ? "me" : "");
+      row.innerHTML = `<img src="${b.img}" alt=""><div class="an">${esc(b.n)}${b.me ? "（きみ）" : ""}</div>
+        <div class="ax" style="${label === "崖っぷち" ? "color:#e63946" : ""}">${label}</div>`;
+      $("annList").appendChild(row);
+      if (ok) sfx.good(); else sfx.bad();
+      i++; setTimeout(next, 900);
+    };
+    setTimeout(next, 700);
+
+    function finish() {
+      $("annBtn").classList.remove("hide");
+      $("annBtn").textContent = "▶";
+      $("annBtn").onclick = () => {
+        sfx.tap();
+        if (isFinal) return ending("final", board);
+        /* 崖っぷち判定 */
+        if (!pass) {
+          G.warnCount++;
+          if (G.warn) return ending("out");
+          G.warn = true;
+        } else { G.warn = false; }
+        if (dropId) {
+          G.alive = G.alive.filter(x => x !== dropId);
+          return showEvent({ c: dropId, t: dropLine(dropId), ch: [{ t: "▶", fx: dropFx(dropId), after: () => afterDay() }] });
+        }
+        afterDay();
+      };
+    }
+  }
+}
+function dropLine(id) {
+  const t = {
+    kai: "「……21歳。ここが限界だった。\n\nでもな、{name}。おれの分まで行けなんて言わない。\nおまえは、おまえの理由で行け。\n\n……見てるから」",
+    sora: "「くやしいです。ほんとに、くやしいです。\n\nでも、ぼく15歳なので。\n来年も、再来年も受けます。\n\n{name}くん、その時は先輩でいてください」",
+    haru: "「あーあ、終わっちゃった。\n……ごめん、ちょっとだけ泣かせて。\n\nおれの分の空気、持っていけよ。\n{name}なら、あの舞台、似合うから」",
+  };
+  return t[id] || "「……ここまでだ」";
+}
+function dropFx(id) {
+  const f = { kai: { st: { vo: 5, me: 4 } }, sora: { st: { me: 6 } }, haru: { st: { ex: 5, me: 5 } } };
+  return Object.assign({ msg: `${CANDS[id].n} が去った。想いを受け取った` }, f[id] || {});
+}
+
+/* ================= エンディング ================= */
+function ending(kind, board) {
+  const stTotal = STATS.reduce((s, x) => s + G.st[x.k], 0);
+  let rk, title, text;
+  if (kind === "out") {
+    rk = "OUT"; title = "脱落";
+    text = `名前は、呼ばれなかった。\n\n控室に戻る足が、やけに重い。\n\nでも30日前の自分より、計算はずっと速くなった。\nそれだけは、誰にも取られない。\n\nまた、来年。`;
+  } else if (kind === "time") {
+    rk = "C"; title = "審査終了";
+    text = `オーディションは終わった。\n結果は、まだ出ていない。`;
+  } else {
+    const myRank = board.findIndex(b => b.me) + 1;
+    const my = board.find(b => b.me);
+    if (myRank === 1) { rk = "S"; title = "センターデビュー";
+      text = `最初に呼ばれたのは、${G.name}の名前だった。\n\n「センターに立つのは、おまえだ」\n司がそう言った瞬間、\n膝から力が抜けた。\n\n20,000人の頂点。\nその足元にあるのは、\n毎日たたき込んだ、あのくだらないほど地味な計算だった。`; }
+    else if (myRank === 2) { rk = "A"; title = "デビュー決定";
+      text = `2人目に、${G.name}の名前が呼ばれた。\n\nまだセンターじゃない。\nでも、ステージの上にいる。\n\nここからが、本当のスタートだ。`; }
+    else if (my.s >= 70) { rk = "B"; title = "あと一歩";
+      text = `呼ばれなかった。\n\nあと数点。\nその数点が、どれだけ遠いか思い知った。\n\n帰り道、審査員の奏が追いかけてきて言った。\n「来年も、待ってるから」`; }
+    else { rk = "C"; title = "届かなかった";
+      text = `届かなかった。\n\n実力が足りなかった。それだけだ。\n\nでも、悔しさの正体はもうわかっている。\nそれは、次に進むための材料だ。`; }
+  }
+
+  const aliveChars = CAND_IDS.filter(id => G.aff[id] > 0);
+  const topChar = aliveChars.length ? aliveChars.reduce((a, b) => G.aff[a] >= G.aff[b] ? a : b) : null;
+  const bond = topChar && G.aff[topChar] >= 60 ? `<div style="margin-top:12px;display:flex;gap:11px;align-items:center;background:#0e0e16;border-radius:8px;padding:11px;box-shadow:0 0 0 1px var(--line) inset">
+    ${pImg(topChar, 54, 64)}<div style="font-size:12px;text-align:left;line-height:1.9">
+    <b style="color:${CANDS[topChar].c}">${CANDS[topChar].n} とのエンディング</b><br>${bondEndText(topChar, rk)}</div></div>` : "";
+
+  const point = stTotal / 5 + (board ? board.find(b => b.me).s : 40) + G.auds.filter(a => a.pass).length * 6;
+  const dp = Math.round(point / 3 + G.fans / 800 + G.pf.pi + G.pf.frac + G.pf.ratio + G.pf.gyaku + G.pf.kufuu);
+  DB.meta.dp += dp; DB.meta.plays++;
+  DB.meta.hall.unshift({
+    name: G.name, av: G.av, rank: rk, title, fans: G.fans, skills: G.skills.length,
+    acc: G.totalQ ? Math.round(G.totalOK / G.totalQ * 100) : 0, st: { ...G.st },
+  });
+  DB.meta.hall = DB.meta.hall.slice(0, 12);
+  DB.run = null; G.done = true; save();
+  if (rk === "S" || rk === "A") { confetti(70); sfx.clear(); }
+
+  $("endCard").innerHTML = `
+    <div class="lbl">${kind === "out" ? "AUDITION FAILED" : "FINAL RESULT"}</div>
+    <div class="endRank" style="${rk === "OUT" ? "background:linear-gradient(180deg,#fff,#e63946 50%,#6a0d18);-webkit-background-clip:text;background-clip:text;font-size:min(18vw,64px)" : ""}">${rk}</div>
+    <div class="endTitle">${title}</div>
+    <div style="display:flex;justify-content:center;margin:6px 0 12px">
+      <img src="${AVATARS[G.av].img}" style="width:92px;height:110px;border-radius:6px;object-fit:cover;box-shadow:0 10px 30px #000">
+    </div>
+    <div class="endText">${text.replace(/\n/g, "<br>")}</div>
+    ${bond}
+    <div class="endStats">
+      ${STATS.map(s => `<div>${s.n} <b>${Math.round(G.st[s.k])}</b> <span style="color:${rank(Math.round(G.st[s.k]))[2]}">${rank(Math.round(G.st[s.k]))[1]}</span></div>`).join("")}
+      <div>📈 注目度 <b>${G.fans.toLocaleString()}</b></div>
+      <div>✨ スキル <b>${G.skills.length}</b></div>
+      <div>✏️ 正答率 <b>${G.totalQ ? Math.round(G.totalOK / G.totalQ * 100) : 0}%</b></div>
+      <div>🔥 最大コンボ <b>${G.bestCombo}</b></div>
+    </div>
+    <div class="dpGet">💠 プロジェクトポイント <b>+${dp}</b><br>
+      <span style="font-size:10.5px;color:var(--ink3)">次の挑戦の強化に使える</span></div>
+    <button class="btn" id="endOk">タイトルへ</button>`;
+  show("scrEnd");
+  $("endOk").onclick = () => { sfx.tap(); G = null; renderTitle(); };
+}
+function bondEndText(id, rk) {
+  const t = {
+    shion: "「……見てた。ずっと。<br>おまえのステージ、いちばん前で」",
+    ren:   "「今回は、おまえの勝ちだ。<br>……次は、ぜったい負けない」",
+    haru:  "「うおおお やったな！！<br>……おれの分も、頼んだぞ」",
+    kai:   "「よくやった。<br>……おれが行けなかった場所だ。しっかり立ってろ」",
+    sora:  "「かっこよかったです！<br>ぼくも、来年ぜったい行きます」",
+  };
+  return t[id] + (rk === "S" ? `<br><span style="color:var(--gold)">☆ BEST ENDING ☆</span>` : "");
+}
+
+/* ================= ショップ ================= */
+function openShop() {
+  const own = G.ownOutfits;
+  openSheet(`<div class="ptitle">衣装 &amp; アイテム<small>📈 注目度 ${G.fans.toLocaleString()} が通貨</small></div>
+  <div class="lbl" style="margin:8px 0 6px">STAGE COSTUME（表現力アップ・永続）</div>
+  <div class="list">${OUTFITS.map(o => {
+    const has = own.includes(o.id);
+    return `<div class="item ${!has && G.fans < o.cost ? "lock" : ""}"><span class="ie">${o.e}</span>
+      <div class="it"><b>${o.n}</b><small>表現力 +${o.ex}　／　${o.cost.toLocaleString()}</small></div>
+      ${has ? (G.outfit === o.id ? `<span class="own">着用中</span>` : `<button class="buy" data-w="${o.id}">着る</button>`)
+            : `<button class="buy" data-b="${o.id}" ${G.fans < o.cost ? "disabled" : ""}>買う</button>`}</div>`;
+  }).join("")}</div>
+  <div class="lbl" style="margin:14px 0 6px">ITEM</div>
+  <div class="list">${ITEMS.map(o => `<div class="item ${G.fans < o.cost ? "lock" : ""}"><span class="ie">${o.e}</span>
+      <div class="it"><b>${o.n}</b><small>${o.d}　／　${o.cost.toLocaleString()}</small></div>
+      <button class="buy" data-i="${o.id}" ${G.fans < o.cost || (o.id === "note" && G.items.note) ? "disabled" : ""}>買う</button></div>`).join("")}</div>
+  <div style="height:12px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
+  $("sheetPanel").querySelectorAll(".buy").forEach(b => b.onclick = () => {
+    const { b: bid, w: wid, i: iid } = b.dataset;
+    if (wid) { G.outfit = wid; sfx.shop(); }
+    else if (bid) {
+      const o = OUTFITS.find(x => x.id === bid);
+      if (G.fans < o.cost) return;
+      G.fans -= o.cost; G.ownOutfits.push(o.id); G.outfit = o.id;
+      if (!DB.meta.outfits.includes(o.id)) DB.meta.outfits.push(o.id);
+      addStat("ex", o.ex); sfx.shop(); toast(`${o.e} ${o.n} を入手　表現力 +${o.ex}`);
+    } else if (iid) {
+      const o = ITEMS.find(x => x.id === iid);
+      if (G.fans < o.cost) return;
+      G.fans -= o.cost; sfx.shop();
+      if (iid === "drink") { G.stam = Math.min(G.maxStam, G.stam + 45); toast("🥤 体力 +45"); }
+      if (iid === "omamori") { G.items.omamori++; toast("🍱 差し入れを入手"); }
+      if (iid === "note") { G.items.note = 1; toast("📓 制限時間が伸びた"); }
+    }
+    save(); openShop(); renderMain(); $("ovSheet").classList.add("on");
+  });
+}
+
+/* ================= スキル一覧 ================= */
+function openSkills() {
+  openSheet(`<div class="ptitle">スキル<small>PERFECTを重ねると覚える</small></div>
+  <div class="list">${SKILLS.map(s => {
+    const has = G.skills.includes(s.id);
+    return `<div class="item ${has ? "" : "lock"}"><span class="ie">${s.e}</span>
+      <div class="it"><b>${has ? s.n : "？？？"}</b><small>${has ? s.d : condText(s)}</small></div>
+      ${has ? `<span class="own">習得</span>` : ""}</div>`;
+  }).join("")}</div>
+  <div style="height:12px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
+}
+function condText(s) {
+  const m = {
+    pi3: "ボーカル練習で PERFECT 3回", pi8: "ボーカル練習で PERFECT 8回",
+    fr3: "ダンス練習で PERFECT 3回", fr8: "ダンス練習で PERFECT 8回",
+    ra3: "表現力トレで PERFECT 3回", ra8: "表現力トレで PERFECT 8回",
+    gy3: "トーク練習で PERFECT 3回", gy8: "トーク練習で PERFECT 8回",
+    ku3: "自主トレで PERFECT 3回", king: "5ジャンルすべてで PERFECT 5回",
+    combo: "最大コンボ 15", nomiss: "練習で 100点", iron: "精神力 70以上", star: "好感度の合計 200以上",
+  };
+  return "条件：" + (m[s.id] || "？");
+}
+
+/* ================= 記録 ================= */
+let zTab = 0;
+function openZukan() {
+  const tabs = ["デビュー記録", "スキル", "衣装", "データ"];
+  let body = "";
+  if (zTab === 0) {
+    body = DB.meta.hall.length ? `<div class="list">${DB.meta.hall.map(h => `
+      <div class="item"><img class="ii" src="${AVATARS[h.av].img}" alt="">
+      <div class="it"><b>${esc(h.name)}　<span class="badge" style="color:${h.rank === "OUT" ? "#e63946" : "#ffcf5c"}">${h.rank}</span></b>
+      <small>${h.title}　／　注目度 ${h.fans.toLocaleString()}　正答率 ${h.acc}%</small></div></div>`).join("")}</div>`
+      : `<div class="smallnote">まだ誰も挑戦を終えていない。</div>`;
+  } else if (zTab === 1) {
+    body = `<div class="list">${SKILLS.map(s => {
+      const has = DB.meta.skills.includes(s.id);
+      return `<div class="item ${has ? "" : "lock"}"><span class="ie">${has ? s.e : "？"}</span>
+        <div class="it"><b>${has ? s.n : "？？？"}</b><small>${has ? s.d : condText(s)}</small></div></div>`;
+    }).join("")}</div><div class="smallnote">${DB.meta.skills.length} / ${SKILLS.length} 種 コンプリート</div>`;
+  } else if (zTab === 2) {
+    body = `<div class="list">${OUTFITS.map(o => {
+      const has = DB.meta.outfits.includes(o.id);
+      return `<div class="item ${has ? "" : "lock"}"><span class="ie">${has ? o.e : "？"}</span>
+        <div class="it"><b>${has ? o.n : "？？？"}</b><small>表現力 +${o.ex}</small></div></div>`;
+    }).join("")}</div>`;
+  } else {
+    const keys = Object.keys(DB.meta.best);
+    body = keys.length ? `<div class="list">${keys.sort().map(k => {
+      const [g, lv] = k.split("_"), b = DB.meta.best[k];
+      return `<div class="item"><span class="ie">🔥</span><div class="it"><b>${MATH.GENRE_NAME[g]}　Lv.${lv}</b>
+        <small>ベストタイム ${b.time}秒　／　正解 ${b.ok}/20</small></div></div>`;
+    }).join("")}</div>` : `<div class="smallnote">特訓モードの記録がここに残る。</div>`;
+    body += `<div class="divider"></div>
+      <div class="kv"><span>挑戦した回数</span><b>${DB.meta.plays}</b></div>
+      <div class="kv"><span>見たイベント</span><b>${DB.meta.evseen.length} / ${EVENTS.length}</b></div>
+      <div class="kv"><span>プロジェクトポイント</span><b>${DB.meta.dp}</b></div>`;
+  }
+  openSheet(`<div class="ptitle">記録</div>
+    <div class="tabs">${tabs.map((t, i) => `<button class="tab ${i === zTab ? "on" : ""}" data-t="${i}">${t}</button>`).join("")}</div>
+    ${body}<div style="height:12px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
+  $("sheetPanel").querySelectorAll(".tab").forEach(b => b.onclick = () => { zTab = +b.dataset.t; sfx.tap(); openZukan(); });
+}
+
+/* ================= 強化（引きつぎ） ================= */
+const UPS = [
+  { k: "st",   n: "初期ステータス", e: "📈", d: "はじめのステータス +5", cost: 20, max: 5 },
+  { k: "stam", n: "体力の最大値",   e: "💪", d: "体力の最大 +10",       cost: 15, max: 5 },
+  { k: "eff",  n: "練習効率",       e: "⚡️", d: "練習の伸び +10%",      cost: 30, max: 5 },
+  { k: "fan",  n: "初期注目度",     e: "📣", d: "はじめの注目度 +500",  cost: 10, max: 5 },
+  { k: "aff",  n: "初期好感度",     e: "🤝", d: "全員の好感度 +10",     cost: 12, max: 5 },
+];
+function openDream() {
+  openSheet(`<div class="ptitle">強化メニュー<small>挑戦を終えるともらえるポイントで、次を強くする</small></div>
+  <div style="text-align:center;font-size:13px;margin-bottom:12px">所持 💠 <b style="font-size:24px;color:var(--gold)">${DB.meta.dp}</b></div>
+  <div class="list">${UPS.map(u => {
+    const lv = DB.meta.up[u.k], full = lv >= u.max, cost = u.cost * (lv + 1);
+    return `<div class="item ${DB.meta.dp < cost && !full ? "lock" : ""}"><span class="ie">${u.e}</span>
+      <div class="it"><b>${u.n} <span class="badge">Lv.${lv}/${u.max}</span></b><small>${u.d}${full ? "" : `　／ 💠${cost}`}</small></div>
+      ${full ? `<span class="own">MAX</span>` : `<button class="buy" data-u="${u.k}" ${DB.meta.dp < cost ? "disabled" : ""}>強化</button>`}</div>`;
+  }).join("")}</div>
+  <div style="height:12px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
+  $("sheetPanel").querySelectorAll(".buy").forEach(b => b.onclick = () => {
+    const u = UPS.find(x => x.k === b.dataset.u);
+    const cost = u.cost * (DB.meta.up[u.k] + 1);
+    if (DB.meta.dp < cost) return;
+    DB.meta.dp -= cost; DB.meta.up[u.k]++;
+    sfx.shop(); save(); openDream(); renderTitle(); $("ovSheet").classList.add("on");
+  });
+}
+
+/* ================= 特訓 ================= */
+let drill = { g: "pi", lv: 1 };
+function openDrill() {
+  const gs = Object.keys(MATH.GENRE_NAME);
+  openSheet(`<div class="ptitle">特訓モード<small>20問タイムアタック</small></div>
+    <div class="lbl" style="margin:4px 0 6px">GENRE</div>
+    <div class="list">${gs.map(g => `<button class="item" data-g="${g}" style="${g === drill.g ? "box-shadow:0 0 0 1.5px var(--gold) inset" : ""}">
+      <span class="ie">${{ pi: "🥧", frac: "🍰", ratio: "⚖️", gyaku: "🔙", kufuu: "💡" }[g]}</span>
+      <div class="it"><b>${MATH.GENRE_NAME[g]}</b><small>${bestText(g, drill.lv)}</small></div></button>`).join("")}</div>
+    <div class="lbl" style="margin:14px 0 6px">LEVEL</div>
+    <div class="tabs">${[1, 2, 3, 4, 5].map(l => `<button class="tab ${l === drill.lv ? "on" : ""}" data-l="${l}">Lv.${l}</button>`).join("")}</div>
+    <button class="btn" id="drillGo">スタート</button>
+    <div style="height:8px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
+  $("sheetPanel").querySelectorAll("[data-g]").forEach(b => b.onclick = () => { drill.g = b.dataset.g; sfx.tap(); openDrill(); });
+  $("sheetPanel").querySelectorAll("[data-l]").forEach(b => b.onclick = () => { drill.lv = +b.dataset.l; sfx.tap(); openDrill(); });
+  $("drillGo").onclick = () => {
+    closeSheet(); sfx.tap();
+    startQuiz({ mode: "drill", genre: drill.g, lv: drill.lv, total: 20,
+      title: `🔥 ${MATH.GENRE_NAME[drill.g]} Lv.${drill.lv}`, onEnd: r => finishDrill(r) });
+  };
+}
+function bestText(g, lv) {
+  const b = DB.meta.best[`${g}_${lv}`];
+  return b ? `Lv.${lv} ベスト ${b.time}秒（正解 ${b.ok}/20）` : `Lv.${lv} 記録なし`;
+}
+function finishDrill(r) {
+  const key = `${drill.g}_${drill.lv}`;
+  const old = DB.meta.best[key];
+  const isBest = r.correct >= 18 && (!old || r.totalTime < old.time);
+  if (isBest) { DB.meta.best[key] = { time: r.totalTime, ok: r.correct }; save(); confetti(24); }
+  const miss = r.misses.slice(0, 8).map(m => `<div class="missRow"><span>${m.q}</span><em>${MATH.ansHtml(m.a)}</em></div>`).join("");
+  $("resPanel").innerHTML = `
+    <div class="resHead">
+      <div class="lbl">${MATH.GENRE_NAME[drill.g]} Lv.${drill.lv}</div>
+      <div class="resScore">${r.totalTime}<small> 秒</small></div>
+      <div class="resRank" style="background:${isBest ? "#ffcf5c" : "#4cc9f0"}">${isBest ? "ベスト記録更新" : "記録"}</div>
+      <div style="font-size:10.5px;color:var(--ink3);margin-top:8px">正解 ${r.correct}/20　1問平均 ${r.avgTime}秒　最大コンボ ${r.best}</div>
+      ${old ? `<div style="font-size:10.5px;color:var(--ink3)">これまでのベスト ${old.time}秒</div>` : ""}
+      ${r.correct < 18 ? `<div style="font-size:10.5px;color:var(--red);margin-top:4px">※ 18問以上の正解でベスト記録になる</div>` : ""}
+    </div>
+    ${miss ? `<div class="missBox"><div class="mt">MISSED</div>${miss}</div>` : `<div class="smallnote">全問正解。</div>`}
+    <button class="btn" id="resOk">もどる</button>`;
+  $("ovResult").classList.add("on");
+  $("resOk").onclick = () => { sfx.tap(); $("ovResult").classList.remove("on"); renderTitle(); openDrill(); };
+}
+
+/* ================= 起動 ================= */
+window.closeSheet = closeSheet;
+renderTitle();
