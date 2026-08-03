@@ -59,6 +59,7 @@ const CMDS = [
   { id: "ex", g: "ratio", e: "🔥", n: "表現力トレ",   s: "割合と比",   main: "ex", sub: "tk", st: 18 },
   { id: "tk", g: "gyaku", e: "🎙", n: "トーク練習",   s: "逆算",       main: "tk", sub: "me", st: 20 },
   { id: "sk", g: "kufuu", e: "💪", n: "自主トレ",     s: "四則と工夫", main: "me", sub: "*",  st: 26 },
+  { id: "bn", g: "bun",   e: "📖", n: "台本読解トレ", s: "一行題（文章題の型）", main: "tk", sub: "me", st: 22 },
 ];
 
 const AUDS = [
@@ -641,7 +642,7 @@ function finishLesson(cmd, r) {
   }
   let fans = 0;
   if (r.score >= 70) { fans = Math.round((r.score - 60) * ri(3, 7) * (1 + fx.fan)); G.fans += fans; }
-  if (r.score >= 95 && r.correct === r.total) { G.pf[cmd.g]++; G.perfectLesson++; }
+  if (r.score >= 95 && r.correct === r.total) { G.pf[cmd.g] = (G.pf[cmd.g] || 0) + 1; G.perfectLesson++; }
   G.totalQ += r.total; G.totalOK += r.correct;
   G.bestCombo = Math.max(G.bestCombo, r.best);
   if (G.over && Math.random() < .35) G.cond = clamp(G.cond - 1, 0, 4);
@@ -925,7 +926,7 @@ function drawInput() { $("qVal").textContent = Q.input; $("qInput").className = 
 function nextQ() {
   if (Q.idx >= Q.total) return endQuiz();
   let q, tries = 0;
-  do { q = MATH.gen(Q.mode === "aud" ? pick(["pi", "frac", "ratio", "gyaku", "kufuu"]) : Q.genre, Q.lv); tries++; }
+  do { q = MATH.gen(Q.mode === "aud" ? pick(Q.lv >= 4 ? ["pi", "frac", "ratio", "gyaku", "kufuu", "bun", "bun"] : ["pi", "frac", "ratio", "gyaku", "kufuu"]) : Q.genre, Q.lv); tries++; }
   while (q.q === Q.lastQ && tries < 8);
   Q.lastQ = q.q; Q.cur = q; Q.input = "";
   $("qNo").textContent = Q.idx + 1;
@@ -1406,7 +1407,7 @@ function openDrill() {
   openSheet(`<div class="ptitle">特訓モード<small>20問タイムアタック</small></div>
     <div class="lbl" style="margin:4px 0 6px">GENRE</div>
     <div class="list">${gs.map(g => `<button class="item" data-g="${g}" style="${g === drill.g ? "box-shadow:0 0 0 1.5px var(--gold) inset" : ""}">
-      <span class="ie">${{ pi: "🥧", frac: "🍰", ratio: "⚖️", gyaku: "🔙", kufuu: "💡" }[g]}</span>
+      <span class="ie">${{ pi: "🥧", frac: "🍰", ratio: "⚖️", gyaku: "🔙", kufuu: "💡", bun: "📖" }[g]}</span>
       <div class="it"><b>${MATH.GENRE_NAME[g]}</b><small>${bestText(g, drill.lv)}</small></div></button>`).join("")}</div>
     <div class="lbl" style="margin:14px 0 6px">LEVEL</div>
     <div class="tabs">${[1, 2, 3, 4, 5].map(l => `<button class="tab ${l === drill.lv ? "on" : ""}" data-l="${l}">Lv.${l}</button>`).join("")}</div>

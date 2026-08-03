@@ -114,7 +114,20 @@ function gFrac(lv) {
   }
   /* lv5 */
   for (let i = 0; i < 60; i++) {
-    if (Math.random() < .5) {
+    const pat = Math.random();
+    if (pat < .3) {
+      /* かっこ付き：( a/b − c/d ) × e */
+      const d1 = pick([2,3,4,6]), d2 = pick([3,4,6,8,12]);
+      const n1 = ri(1, d1 - 1), n2 = ri(1, d2 - 1);
+      const N = n1 * d2 - n2 * d1, D = d1 * d2;
+      if (N <= 0) continue;
+      const e = pick([D, D / gcd(N, D), ri(2, 6)]);
+      if (e !== Math.round(e) || e < 2 || e > 24) continue;
+      const f = frac(N * e, D);
+      if (f.d > 40 || f.n > 60) continue;
+      return { q: `( ${F(n1, d1)} − ${F(n2, d2)} ) × ${e}`, a: f.d === 1 ? num(f.n) : f, tag: "分数の計算", small: true, note: f.d === 1 ? "" : "分数は 3/4 のように入力" };
+    }
+    if (pat < .6) {
       const ds = [pick([2,3,4,6]), pick([3,4,5,6,8]), pick([2,4,6,12])];
       const ns = ds.map(d => ri(1, d - 1));
       const v = ns[0] / ds[0] + ns[1] / ds[1] - ns[2] / ds[2];
@@ -243,10 +256,12 @@ function gKufuu(lv) {
     { const t = c * d + ri(2, 40); return { q: `${t} − ${c} × ${d}`, a: num(t - c * d), tag: "四則" }; }
   }
   if (lv === 3) {
-    if (r < .25) { const n = pick([12,16,24,28,32,36,44,48]); return { q: `25 × ${n}`, a: num(25 * n), tag: "くふう" }; }
-    if (r < .45) { const n = pick([8,16,24,32,40,48]); return { q: `125 × ${n}`, a: num(125 * n), tag: "くふう" }; }
-    if (r < .65) { const n = ri(12, 48); return { q: `99 × ${n}`, a: num(99 * n), tag: "くふう" }; }
-    if (r < .8) { const n = ri(12, 45); return { q: `101 × ${n}`, a: num(101 * n), tag: "くふう" }; }
+    if (r < .18) { const n = pick([11,12,13,14,15,16,17,18,19,25]); return { q: `${n} × ${n}`, a: num(n * n), tag: "平方数" }; }
+    if (r < .32) { const n = pick([625,375,875,125,250,750,68,132,275]); return { q: `1000 − ${n}`, a: num(1000 - n), tag: "補数" }; }
+    if (r < .48) { const n = pick([12,16,24,28,32,36,44,48]); return { q: `25 × ${n}`, a: num(25 * n), tag: "くふう" }; }
+    if (r < .62) { const n = pick([8,16,24,32,40,48]); return { q: `125 × ${n}`, a: num(125 * n), tag: "くふう" }; }
+    if (r < .75) { const n = ri(12, 48); return { q: `99 × ${n}`, a: num(99 * n), tag: "くふう" }; }
+    if (r < .87) { const n = ri(12, 45); return { q: `101 × ${n}`, a: num(101 * n), tag: "くふう" }; }
     const s = pick([[4,25],[8,125],[2,50],[5,20]]); const m = ri(3, 19);
     return { q: `${s[0]} × ${m} × ${s[1]}`, a: num(s[0] * m * s[1]), tag: "くふう" };
   }
@@ -276,9 +291,90 @@ function gKufuu(lv) {
   return { q: `3.14 × ${k} × ${m * 4}`, a: num(3.14 * k * m * 4), tag: "くふう" };
 }
 
-const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu };
-const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫" };
-const BASE_TIME = { pi: 14, frac: 16, ratio: 18, gyaku: 16, kufuu: 16 };
+/* ---------- ⑥ 一行題（文章題の型） ---------- */
+/* 模試の正答率50〜70%帯：和差算・平均・植木算・周期算・つるかめ算・
+   差集め算・年齢算・倍数算・組み合わせ・速さ・旅人算 */
+function gBun(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    if (r < .55) {
+      const small = ri(3, 30), diff = ri(2, 20) * 2, big = small + diff;
+      return Math.random() < .5
+        ? { q: `2つの数の 和は ${big + small}、差は ${diff}。<br>大きいほうの数は？`, a: num(big), tag: "和差算", small: true, note: "（和＋差）÷2 が大きいほう" }
+        : { q: `2つの数の 和は ${big + small}、差は ${diff}。<br>小さいほうの数は？`, a: num(small), tag: "和差算", small: true, note: "（和−差）÷2 が小さいほう" };
+    }
+    const avg = ri(60, 95), n = pick([3, 4]);
+    return { q: `テスト${n}回の平均点は ${avg}点。<br>合計は 何点？`, a: num(avg * n, "点"), tag: "平均", small: true, note: "合計＝平均×回数" };
+  }
+  if (lv === 2) {
+    if (r < .35) {
+      const d = pick([3,4,5,6,8,10]), k = ri(4, 12), L = d * k;
+      return { q: `${L}m の道に ${d}m おきに木を植える。<br>両はしにも植えると 何本？`, a: num(k + 1, "本"), tag: "植木算", small: true, note: "両はしあり＝間の数＋1" };
+    }
+    if (r < .6) {
+      const d = pick([3,4,5,6,8]), k = ri(5, 12), L = d * k;
+      return { q: `まわり ${L}m の池のふちに ${d}m おきに<br>木を植えると 何本？`, a: num(k, "本"), tag: "植木算", small: true, note: "池のまわり＝間の数と同じ" };
+    }
+    const cyc = pick([3, 4, 5]), N = ri(20, 60);
+    const cnt = Math.floor(N / cyc) + (N % cyc >= 1 ? 1 : 0);
+    return { q: `▲■●…と ${cyc}個のもようをくり返す。<br>${N}番目までに ▲ は 何個？`, a: num(cnt, "個"), tag: "周期算", small: true, note: `${N}÷${cyc} の商とあまりで考える` };
+  }
+  if (lv === 3) {
+    if (r < .4) {
+      const kame = ri(2, 8), tsuru = ri(2, 8);
+      return { q: `ツルとカメが 合わせて ${tsuru + kame}匹。<br>足は全部で ${tsuru * 2 + kame * 4}本。<br>カメは 何匹？`, a: num(kame, "匹"), tag: "つるかめ算", small: true, note: "全部ツルとして考える" };
+    }
+    if (r < .7) {
+      for (let i = 0; i < 30; i++) {
+        const ppl = ri(4, 12), a2 = ri(2, 5), c2 = a2 + pick([1, 2]);
+        const rest = ri(2, 9), lack = (c2 - a2) * ppl - rest;
+        if (lack <= 0) continue;
+        return { q: `1人に ${a2}個ずつ配ると ${rest}個あまり、<br>${c2}個ずつ配ると ${lack}個たりない。<br>人数は 何人？`, a: num(ppl, "人"), tag: "差集め算", small: true, note: "（あまり＋不足）÷1人分の差" };
+      }
+      return gBun(2);
+    }
+    const n = pick([4, 5, 6, 7, 8]);
+    return { q: `${n}チームが 総当たり戦をする。<br>試合数は ぜんぶで 何試合？`, a: num(n * (n - 1) / 2, "試合"), tag: "組み合わせ", small: true, note: "n×(n−1)÷2" };
+  }
+  if (lv === 4) {
+    if (r < .5) {
+      for (let i = 0; i < 40; i++) {
+        const k = pick([2, 3]), child = ri(5, 12), yrs = ri(2, 10);
+        const mom = k * (child + yrs) - yrs;
+        if (mom < child + 18 || mom > 45) continue;
+        return { q: `いま 母は${mom}歳、子は${child}歳。<br>母の年齢が子の${k}倍になるのは<br>何年後？`, a: num(yrs, "年後"), tag: "年齢算", small: true, note: "2人の年齢の差はずっと変わらない" };
+      }
+      return gBun(3);
+    }
+    for (let i = 0; i < 30; i++) {
+      const k = pick([2, 3, 5]), x = pick([100, 150, 200, 250, 300, 400]);
+      const b = 2 * x / (k - 1);
+      if (b !== Math.round(b)) continue;
+      return { q: `兄は弟の${k}倍のお金を持っている。<br>兄が弟に${x}円わたすと 2人は同じ金額に。<br>弟は最初 いくら？`, a: num(b, "円"), tag: "倍数算", small: true, note: "わたすと差が2×金額ちぢむ" };
+    }
+    return gBun(3);
+  }
+  /* lv5 */
+  if (r < .3) {
+    const va = pick([60, 70, 80]), vb = pick([40, 50, 60]);
+    const t = ri(4, 12), D = (va + vb) * t;
+    return { q: `${D}m はなれた2人が 向かい合って進む。<br>分速${va}m と 分速${vb}m。<br>出会うのは 何分後？`, a: num(t, "分後"), tag: "旅人算", small: true, note: "出会い＝道のり÷速さの和" };
+  }
+  if (r < .55) {
+    const c = pick([[40,15],[40,45],[60,20],[60,45],[80,15],[80,30],[12,20],[12,45]]);
+    return { q: `時速 ${c[0]}km で ${c[1]}分 進むと 何km？`, a: num(c[0] * c[1] / 60, "km"), tag: "速さ", small: true, note: "分→時間になおしてかける" };
+  }
+  if (r < .8) {
+    const a2 = ri(2, 8), b2 = ri(2, 8);
+    return { q: `50円と80円のおかしを 合わせて${a2 + b2}個買うと<br>代金は ${50 * a2 + 80 * b2}円だった。<br>80円のおかしは 何個？`, a: num(b2, "個"), tag: "つるかめ算", small: true, note: "全部50円として考える" };
+  }
+  const n = pick([4, 5]), avg = ri(70, 90), last = ri(50, 100);
+  return { q: `${n}回のテストの平均は ${avg}点。<br>はじめの${n - 1}回の合計は ${avg * n - last}点。<br>最後の1回は 何点？`, a: num(last, "点"), tag: "平均", small: true, note: "合計＝平均×回数 から引く" };
+}
+
+const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu, bun: gBun };
+const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫", bun: "一行題" };
+const BASE_TIME = { pi: 14, frac: 16, ratio: 18, gyaku: 16, kufuu: 16, bun: 30 };
 
 function gen(genre, lv) {
   lv = Math.max(1, Math.min(5, lv | 0));
