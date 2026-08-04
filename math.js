@@ -374,14 +374,15 @@ function gBun(lv) {
 
 const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu, bun: gBun };
 const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫", bun: "一行題" };
-const BASE_TIME = { pi: 14, frac: 16, ratio: 18, gyaku: 16, kufuu: 16, bun: 30 };
+const BASE_TIME = { pi: 20, frac: 24, ratio: 26, gyaku: 24, kufuu: 24, bun: 55 };
+const TIME_STEP = { pi: 3, frac: 4, ratio: 4, gyaku: 4, kufuu: 4, bun: 5 };
 
 function gen(genre, lv) {
   lv = Math.max(1, Math.min(5, lv | 0));
   let q;
   try { q = GEN[genre](lv); } catch (e) { q = gPi(1); }
   q.genre = genre; q.lv = lv;
-  q.time = BASE_TIME[genre] + (lv - 1) * 3;
+  q.time = BASE_TIME[genre] + (lv - 1) * (TIME_STEP[genre] || 3);
   return q;
 }
 
