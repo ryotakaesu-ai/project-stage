@@ -416,7 +416,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
-    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [],
+    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false,
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
   DB.run = G; save(); sfx.clear();
@@ -1177,12 +1177,16 @@ function announce(a, idx, board, pass, tier) {
       $("annBtn").textContent = "▶";
       $("annBtn").onclick = () => {
         sfx.tap();
-        if (isFinal) return ending("final", board);
+        if (isFinal) {
+          const myRank = board.findIndex(b => b.me) + 1;
+          if (myRank >= 3 && !G.extraTried) return extraSlot(board);
+          return ending("final", board);
+        }
         if (idx >= 2) G.team = null;   /* 合宿チームは3次審査で解散 */
         /* 崖っぷち判定 */
         if (!pass) {
           G.warnCount++;
-          if (G.warn) return ending("out");
+          if (G.warn) return revivalExam();
           G.warn = true;
           toast("⚠ 崖っぷち：次の審査で挽回できなければ脱落");
         } else { G.warn = false; }
@@ -1209,10 +1213,55 @@ function dropFx(id) {
 }
 
 /* ================= エンディング ================= */
+/* ---------- 救済：復活試験（脱落の危機） ---------- */
+function revivalExam() {
+  showEvent({
+    c: "kanade",
+    t: "「……待って。\n審査員特権で、一度だけ『復活試験』を出せる。\n使うのは、きみが最後だ。\n\nこの試験に受かれば、オーディションに残れる。\n──見せて。きみの本気」",
+    ch: [{ t: "「お願いします」", fx: {}, after: () => startQuiz({
+      mode: "aud", lv: 3, total: 8, title: "🌙 復活試験",
+      onEnd: r => {
+        G.totalQ += r.total; G.totalOK += r.correct; G.bestCombo = Math.max(G.bestCombo, r.best);
+        if (r.score >= 50) {
+          G.warn = true;   /* 崖っぷちのまま続行 */
+          toast("🌙 復活！ オーディションに残った（崖っぷち継続中）");
+          confetti(30); sfx.clear(); save();
+          return showEvent({ c: "kanade", t: "「……おかえり。\nこれで貸しひとつ、ね。\n\n次は、自分の力で残るんだよ」",
+            ch: [{ t: "「はい！」", fx: { st: { me: 5 } }, after: () => afterDay() }] });
+        }
+        ending("out");
+      }
+    }) }]
+  });
+}
+/* ---------- 救済：追加合格枠（ファイナル敗退） ---------- */
+function extraSlot(board) {
+  G.extraTried = true; save();
+  showEvent({
+    c: "tsukasa",
+    t: "「──待て。\n\nデビューメンバーの活動と並行して、\n『追加デビュー枠』を1つ用意することが、たったいま決まった。\n\n条件はひとつ。いまここで、俺たち3人を納得させるパフォーマンスをすること。\n\n最後のステージだ。上がれ」",
+    ch: [{ t: "ステージへ", fx: { cond: 1 }, after: () => startQuiz({
+      mode: "aud", lv: 4, total: 10, title: "🔥 追加合格チャレンジ",
+      onEnd: r => {
+        G.totalQ += r.total; G.totalOK += r.correct; G.bestCombo = Math.max(G.bestCombo, r.best);
+        if (r.score >= 60) return ending("extra", board);
+        if (r.score >= 40) return ending("extraHalf", board);
+        ending("final", board);
+      }
+    }) }]
+  });
+}
+
 function ending(kind, board) {
   const stTotal = STATS.reduce((s, x) => s + G.st[x.k], 0);
   let rk, title, text;
-  if (kind === "out") {
+  if (kind === "extra") {
+    rk = "A"; title = "追加合格デビュー！";
+    text = `「──合格だ」\n\n司が、はじめて笑った。\n\n一度は呼ばれなかった名前が、\n最後の最後で、いちばん大きな拍手で呼ばれた。\n\nあきらめなかったやつにしか、\nこのステージは見えない。`;
+  } else if (kind === "extraHalf") {
+    rk = "B+"; title = "特別練習生デビュー内定！";
+    text = `「……完璧じゃない。だが、目は良かった」\n\n陸がそう言って、1枚の紙を差し出した。\n特別練習生契約──半年後のデビューが約束された切符。\n\n遠回りだけど、道はつながった。`;
+  } else if (kind === "out") {
     rk = "OUT"; title = "脱落";
     text = `名前は、呼ばれなかった。\n\n控室に戻る足が、やけに重い。\n\nでも30日前の自分より、計算はずっと速くなった。\nそれだけは、誰にも取られない。\n\nまた、来年。`;
   } else if (kind === "time") {
@@ -1250,7 +1299,7 @@ function ending(kind, board) {
 
   $("endCard").innerHTML = `
     <div class="lbl">${kind === "out" ? "AUDITION FAILED" : "FINAL RESULT"}</div>
-    <div class="endRank" style="${rk === "OUT" ? "background:linear-gradient(180deg,#fff,#e63946 50%,#6a0d18);-webkit-background-clip:text;background-clip:text;font-size:min(18vw,64px)" : ""}">${rk}</div>
+    <div class="endRank" style="${rk === "OUT" ? "background:linear-gradient(180deg,#fff,#e63946 50%,#6a0d18);-webkit-background-clip:text;background-clip:text;font-size:min(18vw,64px)" : rk.length > 1 ? "font-size:min(17vw,72px)" : ""}">${rk}</div>
     <div class="endTitle">${title}</div>
     <div style="display:flex;justify-content:center;margin:6px 0 12px">
       <img src="${AVATARS[G.av].img}" style="width:92px;height:110px;border-radius:6px;object-fit:cover;box-shadow:0 10px 30px #000">
