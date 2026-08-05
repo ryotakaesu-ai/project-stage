@@ -368,7 +368,9 @@ function openHelp() {
       <small>8問の計算に答える。<u>速く正確に</u>解けるほどステータスが伸びる。3秒以内でPERFECT。</small></div></div>
     <div class="item"><span class="ie">⚖️</span><div class="it"><b>審査員3人は見るところが違う</b>
       <small>司＝歌とダンスと精神力／奏＝人間性とトーク／陸＝ダンスと表現力。3人の平均が総合点。</small></div></div>
-    <div class="item"><span class="ie">⚠️</span><div class="it"><b>合格ラインを2回連続で下回ると脱落</b>
+    <div class="item"><span class="ie">🎖</span><div class="it"><b>通過には3段階ある</b>
+      <small>✨期待枠 → 合格 → 🏆トップ通過。まずは期待枠に入れば次に進める。</small></div></div>
+    <div class="item"><span class="ie">⚠️</span><div class="it"><b>期待枠ラインを2回連続で下回ると脱落</b>
       <small>1回目は「崖っぷち」。次で挽回できなければ、そこで終わり。</small></div></div>
     <div class="item"><span class="ie">🏕</span><div class="it"><b>DAY13〜18は強化合宿</b>
       <small>チーム決め → リーダー決め → 課題曲選び。チーム練習は伸びが大きいが体力を大きく使う。リーダーを引き受けると練習効率と審査点が上がる。</small></div></div>
@@ -1056,7 +1058,10 @@ function finishAudition(a, idx, r) {
     each.forEach(e => e.s += soloB);
   }
   const finalTotal = total + teamB + songB + leadB + soloB;
-  const pass = finalTotal >= a.need;
+  /* 段階通過：期待枠 → 合格 → トップ通過 */
+  const hope = a.need - 16, top = a.need + 8;
+  const tier = finalTotal >= top ? 2 : finalTotal >= a.need ? 1 : finalTotal >= hope ? 0 : -1;
+  const pass = tier >= 0;
 
   /* ライバルのスコア */
   const rivals = Object.keys(a.base).filter(id => G.alive.includes(id))
@@ -1067,19 +1072,20 @@ function finishAudition(a, idx, r) {
 
   G.totalQ += r.total; G.totalOK += r.correct;
   G.bestCombo = Math.max(G.bestCombo, r.best);
-  const fans = Math.round((pass ? 1200 : 400) * (1 + idx * .6) * (1 + (finalTotal - a.need) / 100) * (1 + fx.fan));
+  const fanMul = tier === 2 ? 1.5 : tier === 1 ? 1 : tier === 0 ? .65 : .3;
+  const fans = Math.round(1200 * fanMul * (1 + idx * .6) * (1 + Math.max(0, finalTotal - hope) / 100) * (1 + fx.fan));
   G.fans += Math.max(0, fans);
-  G.auds.push({ n: a.n, score: finalTotal, rank: myRank, pass });
+  G.auds.push({ n: a.n, score: finalTotal, rank: myRank, pass, tier });
   G.lastRank = myRank; G.lastRankOf = board.length;
 
-  if (pass) { confetti(40); sfx.clear(); } else sfx.bad();
+  if (tier === 2) { confetti(60); sfx.clear(); } else if (pass) { confetti(30); sfx.clear(); } else sfx.bad();
 
   const cmt = e => (JCOMMENT[e.j.id].find(c => e.s >= c[0]) || JCOMMENT[e.j.id][3])[1];
   $("resPanel").innerHTML = `
     <div class="resHead">
       <div class="lbl">${a.n}　／　${a.sub}</div>
       <div class="resScore">${finalTotal}<small> 点</small></div>
-      <div class="resRank" style="background:${pass ? "#ffcf5c" : "#e63946"}">${pass ? "合格ライン突破" : `合格ライン ${a.need}点に届かず`}</div>
+      <div class="resRank" style="background:${tier === 2 ? "#ffcf5c" : tier === 1 ? "#ff9f43" : tier === 0 ? "#3ddc97" : "#e63946"};color:#08080d">${tier === 2 ? "🏆 トップ通過" : tier === 1 ? "合格ライン突破" : tier === 0 ? "✨ 期待枠で通過" : "期待枠ライン " + hope + "点に届かず"}</div>
       <div style="font-size:11px;color:var(--ink3);margin-top:8px">この審査の順位　<b style="color:var(--gold);font-size:17px">${myRank}位</b> / ${board.length}人</div>
     </div>
     ${each.map(e => `<div class="judgeRow"><img src="${e.j.img}" alt="">
@@ -1096,17 +1102,17 @@ function finishAudition(a, idx, r) {
     <div class="missBox"><div class="mt">RANKING</div>
       ${board.map((b, i) => `<div class="missRow" style="${b.me ? "color:var(--gold)" : ""}">
         <span>${i + 1}位　${esc(b.n)}${b.me ? "（きみ）" : ""}</span><em>${b.s}</em></div>`).join("")}</div>
-    <div class="smallnote">正解 ${r.correct}/${r.total}　最大コンボ ${r.best}</div>
+    <div class="smallnote">🏆 トップ通過 ${top}点〜　／　合格 ${a.need}点〜　／　✨ 期待枠 ${hope}点〜<br>正解 ${r.correct}/${r.total}　最大コンボ ${r.best}</div>
     <button class="btn" id="resOk">合格者発表へ</button>`;
   $("ovResult").classList.add("on");
   $("resOk").onclick = () => {
     sfx.tap(); $("ovResult").classList.remove("on");
-    checkSkills(() => announce(a, idx, board, pass));
+    checkSkills(() => announce(a, idx, board, pass, tier));
   };
 }
 
 /* ================= 合格者発表 ================= */
-function announce(a, idx, board, pass) {
+function announce(a, idx, board, pass, tier) {
   const isFinal = idx === 4;
   const dropId = a.drop && a.drop !== "final" ? a.drop : null;
   show("scrAnn");
@@ -1147,10 +1153,14 @@ function announce(a, idx, board, pass) {
       const ok = passIds.includes(b.id);
       let label = ok ? (isFinal ? "デビュー" : "合格") : "脱落";
       let cls = ok ? "pass " : "out ";
-      if (b.me && !isFinal && !pass) {
-        /* 合格ラインに届かなかった本人 */
-        if (G.warn) { label = "脱落"; cls = "out "; }
-        else { label = "崖っぷち"; cls = ""; }
+      if (b.me && !isFinal) {
+        if (tier === 2) label = "トップ通過";
+        else if (tier === 0) label = "期待枠";
+        else if (!pass) {
+          /* 期待枠ラインにも届かなかった本人 */
+          if (G.warn) { label = "脱落"; cls = "out "; }
+          else { label = "崖っぷち"; cls = ""; }
+        }
       }
       const row = document.createElement("div");
       row.className = "annRow in " + cls + (b.me ? "me" : "");
