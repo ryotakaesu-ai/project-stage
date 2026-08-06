@@ -428,15 +428,18 @@ function toast(msg) {
   $("toast").appendChild(t);
   setTimeout(() => { t.style.transition = "opacity .4s"; t.style.opacity = 0; setTimeout(() => t.remove(), 400); }, 2000);
 }
-function confetti(n = 34) {
-  const ems = ["✨", "⭐️", "🎉", "💫", "🏆"];
+const CONFETTI_COLORS = ["#5ac8fa", "#a06bf0", "#8ce65a", "#ffd60a", "#ff8ad8", "#ff5e5e", "#4ad6b8", "#f5f5f7"];
+function confetti(n = 40) {
   for (let i = 0; i < n; i++) {
-    const c = document.createElement("div"); c.className = "conf";
-    c.textContent = pick(ems);
+    const c = document.createElement("div"); c.className = "conf2";
+    c.style.background = pick(CONFETTI_COLORS);
     c.style.left = Math.random() * 100 + "vw";
-    c.style.animationDuration = (1.7 + Math.random() * 1.8) + "s";
-    c.style.animationDelay = (Math.random() * .5) + "s";
-    document.body.appendChild(c); setTimeout(() => c.remove(), 4300);
+    c.style.width = (5 + Math.random() * 6) + "px";
+    c.style.height = (9 + Math.random() * 9) + "px";
+    c.style.setProperty("--rz", (Math.random() * 900 - 450) + "deg");
+    c.style.animationDuration = (1.8 + Math.random() * 2) + "s";
+    c.style.animationDelay = (Math.random() * .6) + "s";
+    document.body.appendChild(c); setTimeout(() => c.remove(), 4600);
   }
 }
 function show(id) {
@@ -612,7 +615,7 @@ function renderMain() {
   $("mChars").innerHTML = CAND_IDS.map(id => {
     const c = CANDS[id], v = clamp(G.aff[id], 0, 100), out = !G.alive.includes(id);
     const isTeam = G.team && G.team.includes(id);
-    return `<div class="chip ${out ? "out" : ""}" data-c="${id}">
+    return `<div class="chip ${out ? "out" : ""}" data-c="${id}" style="${out ? "" : `box-shadow:0 0 0 1.5px ${c.c}66 inset`}">
       <img src="${c.img}" alt="${c.n}">
       <div class="cn">${isTeam ? "◆" : ""}${c.n}</div>
       ${out ? `<div class="outT">脱落</div>` : `<div class="hb"><u style="width:${v}%;background:${c.c}"></u></div>`}</div>`;
