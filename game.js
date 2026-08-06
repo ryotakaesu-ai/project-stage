@@ -661,7 +661,7 @@ function doCmd(c) {
     G.over = true;
   } else G.over = false;
   G.stam = Math.max(0, G.stam - cost);
-  G.golden = Math.random() < .12;
+  G.golden = Math.random() < .25;
   if (G.golden) { toast("🌟 ゴールデンレッスン発生！ 今日の伸びが2倍！"); sfx.skill(); confetti(16); }
   startQuiz({
     mode: "lesson", genre: cmd.g, lv: lessonLv(), total: 8,
