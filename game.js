@@ -949,7 +949,7 @@ function tickQ() {
   const left = Math.max(0, 1 - el / Q.limit);
   const bar = $("qTimer");
   bar.style.width = (left * 100) + "%";
-  bar.classList.toggle("warn", left < .3);
+  bar.classList.toggle("warn", left < .15);
   if (left <= 0) return judge(false, true);
   Q.raf = requestAnimationFrame(tickQ);
 }
@@ -972,7 +972,7 @@ function judge(ok, timeout) {
     $("qInput").className = "ok";
   } else {
     if (Q.shield > 0) { Q.shield--; label = "SAVE!"; color = "#8b7bff"; }
-    else { Q.combo = 0; label = timeout ? "TIME UP" : "MISS"; color = "#e63946"; }
+    else { Q.combo = 0; label = timeout ? "TIME UP…おしい！" : "MISS"; color = "#e63946"; }
     sfx.bad();
     Q.misses.push({ q: Q.cur.q.replace(/<br>/g, " "), a: Q.cur.a });
     $("qInput").className = "ng";
