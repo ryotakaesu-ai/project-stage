@@ -110,6 +110,9 @@ const SKILLS = [
   { id: "nomiss",n: "ノーミスの誇り", e: "🛡", d: "練習の体力消費 −5",        chk: G => G.perfectLesson >= 1, fx: { st: -5 } },
   { id: "iron",  n: "鉄のメンタル",   e: "⛰", d: "本番で緊張しなくなる",      chk: G => G.st.me >= 70, fx: { iron: 1 } },
   { id: "star",  n: "華のあるやつ",   e: "🌟", d: "注目度の増え方 +30%",      chk: G => CAND_IDS.reduce((s, c) => s + G.aff[c], 0) >= 200, fx: { fan: .3 } },
+  { id: "rev5",  n: "復習の鬼",       e: "📖", d: "すべての練習の伸び +10%",  chk: G => (G.revengeOK || 0) >= 5,  fx: { all: .1 } },
+  { id: "rev15", n: "弱点ハンター",   e: "🎯", d: "審査の点数 +5",            chk: G => (G.revengeOK || 0) >= 15, fx: { aud: 5 } },
+  { id: "rev30", n: "理解の天才",     e: "🧠", d: "すべての練習 +15%／注目度 +20%", chk: G => (G.revengeOK || 0) >= 30, fx: { all: .15, fan: .2 } },
 ];
 
 /* ================= 会話（交流） ================= */
@@ -352,6 +355,7 @@ $("btnCont").onclick = () => {
   /* 旧バージョンのセーブとの互換 */
   G.fixedSeen = G.fixedSeen || []; G.evseen = G.evseen || [];
   G.song = G.song || null; G.solo = G.solo || null; G.leader = G.leader || null;
+  G.revengeOK = G.revengeOK || 0; G.milesSeen = G.milesSeen || [];
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -380,7 +384,9 @@ function openHelp() {
       <small>追い込む／体を整える／円陣を組む。状態を見て選ぼう。</small></div></div>
     <div class="item"><span class="ie">💔</span><div class="it"><b>候補生は1人ずつ脱落していく</b>
       <small>仲良くなったやつほど、見送りはつらい。好感度は最後まで効いてくる。</small></div></div>
-    <div class="item"><span class="ie">✨</span><div class="it"><b>スキル14種</b>
+    <div class="item"><span class="ie">📖</span><div class="it"><b>復習タイム＝まちがいが宝になる</b>
+      <small>練習でミスすると、結果画面から「復習タイム」へ。仲間や審査員が解き方のコツを教えてくれて、同じ問題にリベンジできる。成功すると特別ボーナス＋リベンジ回数で新スキルも。</small></div></div>
+    <div class="item"><span class="ie">✨</span><div class="it"><b>スキル17種</b>
       <small>PERFECTを重ねると習得。練習の伸びや審査の点数が上がる。</small></div></div>
     <div class="item"><span class="ie">💠</span><div class="it"><b>引きつぎ</b>
       <small>挑戦が終わるとプロジェクトポイント獲得。強化メニューで次の挑戦を有利にできる。</small></div></div>
@@ -416,7 +422,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
-    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false,
+    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [],
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
   DB.run = G; save(); sfx.clear();
@@ -651,6 +657,90 @@ function finishLesson(cmd, r) {
   showResult({ title: `${cmd.e} ${cmd.n}`, r, gains, fans, after: () => checkSkills(() => endDay()) });
 }
 
+/* ================= 応援ライン ================= */
+function cheerLine() {
+  const cands = [["shion", "「……いい」"], ["haru", "「ナイスー！」"], ["kai", "「その調子だ」"], ["ren", "「悪くないな」"], ["sora", "「すごいすごい！」"]]
+    .filter(x => !G || !G.alive || G.alive.includes(x[0]))
+    .map(x => `${CANDS[x[0]].n}${x[1]}`);
+  const judges = ["司「……続けろ」", "奏「いいよ、その調子」", "陸「キレてるねぇ！」"];
+  return pick(cands.concat(judges));
+}
+
+/* ================= がんばりマイルストーン ================= */
+const MILES = [50, 100, 200, 350, 500];
+const MILE_EV = {
+  50:  { c: "haru",    t: "「なあ、知ってるか。おまえ、ここまでで50問も解いてるんだぜ。\n……ちゃんと数えてたんだ、おれ。\n\nすごいやつの努力って、意外とだれも見てない。\nだから、おれが見とく」" },
+  100: { c: "kanade",  t: "「100問。……すごい数字だね。\n\n才能って言葉、よく聞くけどさ。\n毎日つみ重ねられることが、いちばんの才能なんだよ。\n\nきみはもう、その持ち主だ」" },
+  200: { c: "shion",   t: "「……200問。\n\n天才って呼ばれてるやつ。\n……だいたい、かげでこれをやってる。\n\nおまえは、正しい場所にいる」" },
+  350: { c: "tsukasa", t: "「350問。……言っておく。\n\n努力は、裏切ることもある。\nだが、努力しなかった後悔は、一生裏切り続ける。\n\nおまえは、正しい側に立っている。そのまま行け」" },
+  500: { c: "ren",     t: "「500問だと？ ……おまえ、本物だよ。\n\n認める。おれが認める。\nここまで積んだやつは、本番でどこにでも行ける。\n\n……胸を張れ」" },
+};
+
+/* ================= 復習タイム（解説ドラマ→リベンジ） ================= */
+const MENTOR_G = { pi: "kai", frac: "shion", ratio: "haru", gyaku: "ren", kufuu: "riku", bun: "kanade" };
+const MENTOR_INTRO = {
+  kai: "「……さっきの、見てたぞ。おしかったな。\nコツを教える。よく聞け」",
+  shion: "「……惜しい。\n……ここ。こう考える」",
+  haru: "「ドンマイ！ てかさ、これコツ知ってたら一瞬だぜ？」",
+  ren: "「なんでそこで落とす。……いいか、一度しか言わないからな」",
+  riku: "「惜しいねぇ。これ、筋トレと同じで『型』があるんだよ」",
+  kanade: "「うん、いいところまで行ってた。……いっしょに見直そうか」",
+};
+const MENTOR_WIN = {
+  kai: "「よし。……それでいい。もう忘れないな」",
+  shion: "「……ん。もう大丈夫。\n……まちがえた問題は、宝物。本番の前に見つけられたんだから」",
+  haru: "「うおおお！ 完璧じゃん！！ 天才か？」",
+  ren: "「……当然だ。次は最初から決めろよ」",
+  riku: "「そう、それ！ 体で覚えたな。もう抜けねぇよ」",
+  kanade: "「ね、できたでしょう。\nわからない→わかったに変わる瞬間が、いちばん強くなる瞬間なんだ」",
+};
+const MENTOR_LOSE = {
+  kai: "「……大丈夫だ。あせるな。",
+  shion: "「……大丈夫。",
+  haru: "「おっけーおっけー、ドンマイ！",
+  ren: "「……ちっ。まあいい。",
+  riku: "「ん、まだ体に入ってないな。",
+  kanade: "「うん、大丈夫。",
+};
+function startRevenge(misses, done) {
+  const list = misses.slice(0, 3);
+  let i = 0;
+  const next = () => {
+    if (i >= list.length) return done();
+    const m = list[i++];
+    const lec = MATH.lecture(m.tag);
+    const mid = MENTOR_G[m.genre] || "kanade";
+    const ansTxt = `${MATH.ansText(m.a)}${m.a.unit || ""}`;
+    showEvent({
+      c: mid,
+      t: `${MENTOR_INTRO[mid]}\n\n📖【${lec.t}】\n${lec.b}\n\nさっきの問題の答えは「${ansTxt}」。\n……理解したら、同じ問題でリベンジだ。`,
+      ch: [{ t: "🔥 もう一回、挑戦する", fx: {}, after: () => startQuiz({
+        mode: "lesson", genre: m.genre || "pi", lv: 5, total: 1,
+        fixed: [{ q: m.qq, a: m.a, tag: "リベンジ・" + m.tag, small: true, note: m.note, genre: m.genre, time: Math.round((m.time || 60) * 1.5) }],
+        title: "📖 復習タイム・リベンジ",
+        onEnd: r => {
+          if (r.correct === 1) {
+            if (G) {
+              G.revengeOK = (G.revengeOK || 0) + 1;
+              addStat("me", 2);
+              const cm = CMDS.find(c => c.g === m.genre);
+              if (cm) addStat(cm.main, 2);
+              G.fans += 150; save();
+            }
+            confetti(26); sfx.clear();
+            showEvent({ c: mid, t: `${MENTOR_WIN[mid]}\n\n✨ リベンジ成功！ 特別ボーナス獲得\n精神力 +2${G ? `　／　リベンジ成功 累計${G.revengeOK}回` : ""}`,
+              ch: [{ t: "▶", fx: {}, after: next }] });
+          } else {
+            showEvent({ c: mid, t: `${MENTOR_LOSE[mid]}\nこの型は、いつか必ず本番でおまえを助ける。\n答えは「${ansTxt}」。今日はそれを覚えて帰ればいい」`,
+              ch: [{ t: "▶", fx: {}, after: next }] });
+          }
+        }
+      }) }]
+    });
+  };
+  next();
+}
+
 /* ================= 結果パネル ================= */
 function scoreRank(s) { return s >= 95 ? ["PERFECT", "#ffcf5c"] : s >= 85 ? ["EXCELLENT", "#ff9f43"] : s >= 70 ? ["GOOD", "#3ddc97"] : s >= 50 ? ["まずまず", "#4cc9f0"] : ["もう一度", "#7b7b95"]; }
 function showResult(o) {
@@ -667,8 +757,11 @@ function showResult(o) {
       ${o.fans ? `<div class="gain"><span>📈 注目度</span><b>+${o.fans.toLocaleString()}</b></div>` : ""}</div>
     ${o.extra || ""}
     ${miss ? `<div class="missBox"><div class="mt">✏️ MISSED</div>${miss}</div>` : `<div class="smallnote">ノーミス。文句なし。</div>`}
+    ${o.r.misses.length ? `<button class="btn gold" id="revBtn" style="margin-bottom:8px">📖 復習タイム（解説→リベンジで特別ボーナス）</button>` : ""}
     <button class="btn" id="resOk">次へ</button>`;
   $("ovResult").classList.add("on");
+  const rb = $("revBtn");
+  if (rb) rb.onclick = () => { sfx.tap(); $("ovResult").classList.remove("on"); startRevenge(o.r.misses, o.after); };
   $("resOk").onclick = () => { sfx.tap(); $("ovResult").classList.remove("on"); o.after(); };
 }
 
@@ -688,6 +781,13 @@ function checkSkills(done) {
 
 /* ================= 1日の終わり ================= */
 function endDay() {
+  G.milesSeen = G.milesSeen || [];
+  const mile = MILES.find(m => G.totalQ >= m && !G.milesSeen.includes(m));
+  if (mile) {
+    G.milesSeen.push(mile); save();
+    const ev = MILE_EV[mile];
+    return showEvent({ c: ev.c, t: `🏅 通算${mile}問 とっぱ！\n\n${ev.t}`, ch: [{ t: "▶", fx: { st: { me: 3 }, cond: 1 }, after: () => endDay() }] });
+  }
   for (const id of G.alive) {
     const b = (BONDS[id] || []).find(x => G.aff[id] >= x.at && !G.bonds.includes(id + x.at));
     if (b) { G.bonds.push(id + b.at); return showEvent({ c: id, t: b.t, ch: [{ t: "▶", fx: b.fx, after: () => afterDay() }] }); }
@@ -927,9 +1027,13 @@ function keyIn(k) {
 function drawInput() { $("qVal").textContent = Q.input; $("qInput").className = ""; }
 function nextQ() {
   if (Q.idx >= Q.total) return endQuiz();
-  let q, tries = 0;
-  do { q = MATH.gen(Q.mode === "aud" ? pick(Q.lv >= 4 ? ["pi", "frac", "ratio", "gyaku", "kufuu", "bun", "bun"] : ["pi", "frac", "ratio", "gyaku", "kufuu"]) : Q.genre, Q.lv); tries++; }
-  while (q.q === Q.lastQ && tries < 8);
+  let q;
+  if (Q.fixed) { q = Q.fixed[Q.idx]; }
+  else {
+    let tries = 0;
+    do { q = MATH.gen(Q.mode === "aud" ? pick(Q.lv >= 4 ? ["pi", "frac", "ratio", "gyaku", "kufuu", "bun", "bun"] : ["pi", "frac", "ratio", "gyaku", "kufuu"]) : Q.genre, Q.lv); tries++; }
+    while (q.q === Q.lastQ && tries < 8);
+  }
   Q.lastQ = q.q; Q.cur = q; Q.input = "";
   $("qNo").textContent = Q.idx + 1;
   $("qTag").textContent = q.tag;
@@ -974,18 +1078,19 @@ function judge(ok, timeout) {
     if (Q.shield > 0) { Q.shield--; label = "SAVE!"; color = "#8b7bff"; }
     else { Q.combo = 0; label = timeout ? "TIME UP…おしい！" : "MISS"; color = "#e63946"; }
     sfx.bad();
-    Q.misses.push({ q: Q.cur.q.replace(/<br>/g, " "), a: Q.cur.a });
+    Q.misses.push({ q: Q.cur.q.replace(/<br>/g, " "), qq: Q.cur.q, a: Q.cur.a, tag: Q.cur.tag, genre: Q.cur.genre, time: Q.cur.time, note: Q.cur.note, small: Q.cur.small });
     $("qInput").className = "ng";
   }
   Q.sum += sc;
-  const sub = ok ? "" : `<small>正解　${MATH.ansHtml(Q.cur.a)}${Q.cur.a.unit || ""}</small>`;
+  let sub = ok ? "" : `<small>正解　${MATH.ansHtml(Q.cur.a)}${Q.cur.a.unit || ""}</small>`;
+  if (ok && Q.combo >= 3 && Math.random() < .45) sub = `<small>${cheerLine()}</small>`;
   $("qCombo").textContent = Q.combo >= 2 ? `${Q.combo} COMBO` : "";
   $("qCombo").className = Q.combo >= 3 ? "hot" : "";
   $("qFb").innerHTML = `<div class="fbi" style="color:${color}">${label}${sub}</div>`;
   $("qFb").classList.add("on");
   if (Q.mode === "aud") renderJudges(Q.sum / Math.max(1, Q.idx + 1));
   Q.idx++;
-  setTimeout(() => { $("qFb").classList.remove("on"); nextQ(); }, ok ? 600 : 1500);
+  setTimeout(() => { $("qFb").classList.remove("on"); nextQ(); }, ok ? (sub ? 1100 : 600) : 1500);
 }
 function endQuiz() {
   cancelAnimationFrame(Q.raf);
@@ -1387,6 +1492,7 @@ function condText(s) {
     gy3: "トーク練習で PERFECT 3回", gy8: "トーク練習で PERFECT 8回",
     ku3: "自主トレで PERFECT 3回", king: "5ジャンルすべてで PERFECT 5回",
     combo: "最大コンボ 15", nomiss: "練習で 100点", iron: "精神力 70以上", star: "好感度の合計 200以上",
+    rev5: "リベンジ成功 5回", rev15: "リベンジ成功 15回", rev30: "リベンジ成功 30回",
   };
   return "条件：" + (m[s.id] || "？");
 }
@@ -1500,8 +1606,11 @@ function finishDrill(r) {
       ${r.correct < 18 ? `<div style="font-size:10.5px;color:var(--red);margin-top:4px">※ 18問以上の正解でベスト記録になる</div>` : ""}
     </div>
     ${miss ? `<div class="missBox"><div class="mt">MISSED</div>${miss}</div>` : `<div class="smallnote">全問正解。</div>`}
+    ${r.misses.length ? `<button class="btn gold" id="revBtn" style="margin-bottom:8px">📖 復習タイム（解説→リベンジ）</button>` : ""}
     <button class="btn" id="resOk">もどる</button>`;
   $("ovResult").classList.add("on");
+  const rb = $("revBtn");
+  if (rb) rb.onclick = () => { sfx.tap(); $("ovResult").classList.remove("on"); startRevenge(r.misses, () => { renderTitle(); openDrill(); }); };
   $("resOk").onclick = () => { sfx.tap(); $("ovResult").classList.remove("on"); renderTitle(); openDrill(); };
 }
 
