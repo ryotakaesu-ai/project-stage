@@ -89,9 +89,9 @@ const CMDS = [
 const AUDS = [
   { d: 6,  n: "1次審査",   sub: "自己PR と 歌唱",       q: 10, lv: 2, need: 42, drop: "noa",  base: { shion: 56, ren: 58, haru: 48, kai: 52, sora: 44, takuto: 54, hara: 50, noa: 43, roi: 47, masaki: 52, shuto: 49, shino: 55 } },
   { d: 12, n: "2次審査",   sub: "課題曲『RUN』ダンス審査", q: 12, lv: 3, need: 52, drop: ["kai", "roi"], base: { shion: 65, ren: 67, haru: 56, kai: 58, sora: 52, takuto: 63, hara: 58, roi: 54, masaki: 60, shuto: 57, shino: 64 } },
-  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 60, drop: ["sora", "hara", "masaki"], base: { shion: 73, ren: 75, haru: 64, sora: 58, takuto: 70, hara: 63, masaki: 66, shuto: 65, shino: 72 } },
-  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 4, need: 68, drop: ["haru", "takuto", "shuto"], base: { shion: 81, ren: 82, haru: 71, takuto: 78, shuto: 72, shino: 80 } },
-  { d: 30, n: "ファイナル審査", sub: "課題曲『STAGE』最終ステージ", q: 15, lv: 5, need: 76, drop: "final", base: { shion: 86, ren: 88, shino: 85 } },
+  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 60, drop: ["sora", "masaki"], base: { shion: 73, ren: 75, haru: 64, sora: 58, takuto: 70, hara: 71, masaki: 66, shuto: 65, shino: 72 } },
+  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 4, need: 68, drop: ["haru"], base: { shion: 81, ren: 82, haru: 71, takuto: 78, shuto: 72, shino: 80, hara: 76 } },
+  { d: 30, n: "ファイナル審査", sub: "課題曲『STAGE』最終ステージ", q: 15, lv: 5, need: 76, drop: "final", base: { shion: 86, ren: 88, shino: 85, takuto: 83, hara: 82, shuto: 78 } },
 ];
 const TOTAL_D = 30;
 const CAMP = [13, 18];   /* 合宿期間 */
@@ -598,7 +598,7 @@ const FIXED = {
     { t: "先頭に立って引っぱる", fx: { st: { ex: 4, me: 3 }, stam: -12 } },
     { t: "ミスを恐れず思いきりやる", fx: { st: { da: 4 }, cond: 1 } } ] },
   20: { solo: true },
-  26: { c: "kanade", t: "「ファイナルの課題曲が決まったよ。——『STAGE』。\nデビューする2人が、いちばん最初に歌う曲でもある。\n……この曲を歌っている自分、想像してごらん」", ch: [
+  26: { c: "kanade", t: "「ファイナルの課題曲が決まったよ。——『STAGE』。\nデビューする5人が、いちばん最初に歌う曲でもある。\n……この曲を歌っている自分、想像してごらん」", ch: [
     { t: "（ステージに立つ自分を思い描く）", fx: { st: { me: 5 }, cond: 1 } },
     { t: "「歌詞、先にください」", fx: { st: { vo: 4, tk: 3 } } } ] },
 };
@@ -777,7 +777,7 @@ $("btnStart").onclick = () => {
   renderMain();
   setTimeout(() => showEvent({
     c: "tsukasa",
-    t: `「おれたちは『タイムレッスー』。\nこのオーディションは、おれたちの新しい仲間を探す場だ。\n\n20,000人応募して、残っているのは11人。デビュー枠は2つ。\n\n言っとくけど、おれたちの人生も懸かってる。\n${esc(name)}。……覚悟はあるか」`,
+    t: `「おれたちは『タイムレッスー』。\nこのオーディションは、おれたちの新しい仲間を探す場だ。\n\n20,000人応募して、残っているのは12人。デビュー枠は5つ。\n\n言っとくけど、おれたちの人生も懸かってる。\n${esc(name)}。……覚悟はあるか」`,
     ch: [{ t: "「あります」", fx: { st: { me: 3 } }, after: () => showEvent({
       c: "riku",
       t: "「そんなに固くならなくていいよ。\n\nこれはオーディションじゃなくて、仲間探しだから。\n選ぶんじゃない。……出会いに来たんだ、僕たちは」",
@@ -1778,7 +1778,7 @@ function announce(a, idx, board, pass, tier) {
   $("annBtn").classList.add("hide");
 
   const lines = isFinal
-    ? ["「これより、最終結果を発表する」", "「デビューするのは、2人」", "「……名前を呼ばれた者だけが、ステージに立てる」"]
+    ? ["「これより、最終結果を発表する」", "「デビューするのは、5人」", "「……名前を呼ばれた者だけが、ステージに立てる」"]
     : ["「これより、合格者を発表する」", "「呼ばれなかった者は、ここで終わりだ」"];
 
   let li = 0;
@@ -1796,12 +1796,12 @@ function announce(a, idx, board, pass, tier) {
     /* 発表順：下位から呼ぶ（緊張感） */
     let order, passIds;
     if (isFinal) {
-      passIds = board.slice(0, 2).map(b => b.id);
+      passIds = board.slice(0, 5).map(b => b.id);
     } else {
       passIds = board.map(b => b.id).filter(id => !drops.includes(id));
     }
     order = [...board].reverse();
-    $("annSub").innerHTML = isFinal ? "「デビューは、この2人だ」" : "";
+    $("annSub").innerHTML = isFinal ? "「デビューは、この5人だ」" : "";
     let i = 0;
     const next = () => {
       if (i >= order.length) return finish();
@@ -1835,7 +1835,7 @@ function announce(a, idx, board, pass, tier) {
         sfx.tap();
         if (isFinal) {
           const myRank = board.findIndex(b => b.me) + 1;
-          if (myRank >= 3 && !G.extraTried) return extraSlot(board);
+          if (myRank >= 6 && !G.extraTried) return extraSlot(board);
           return ending("final", board);
         }
         if (idx >= 2) G.team = null;   /* 合宿チームは3次審査で解散 */
@@ -1939,8 +1939,8 @@ function ending(kind, board) {
     const my = board.find(b => b.me);
     if (myRank === 1) { rk = "S"; title = "センターデビュー";
       text = `最初に呼ばれたのは、${G.name}の名前だった。\n\n「タイムレッスーの新しいセンターは、おまえだ」\nフマがそう言った瞬間、\n膝から力が抜けた。\n\n20,000人の頂点。\nその足元にあるのは、\n毎日たたき込んだ、あのくだらないほど地味な計算だった。`; }
-    else if (myRank === 2) { rk = "A"; title = "デビュー決定";
-      text = `2人目に、${G.name}の名前が呼ばれた。\n\nまだセンターじゃない。\nでも、ステージの上にいる。\n\nここからが、本当のスタートだ。`; }
+    else if (myRank <= 5) { rk = "A"; title = "デビュー決定";
+      text = `${myRank}人目に、${G.name}の名前が呼ばれた。\n\nまだセンターじゃない。\nでも、タイムレッスーの新メンバーとして、ステージの上にいる。\n\nここからが、本当のスタートだ。`; }
     else if (my.s >= 70) { rk = "B"; title = "あと一歩";
       text = `呼ばれなかった。\n\nあと数点。\nその数点が、どれだけ遠いか思い知った。\n\n帰り道、ソウが追いかけてきて言った。\n「来年も、待ってるから」`; }
     else { rk = "C"; title = "届かなかった";
