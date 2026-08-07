@@ -38,8 +38,10 @@ const CANDS = {
   haru:  { n: "ハル",   full: "陽向 / 18", img: "img/haru.jpg",  c: "#ff9f43", role: "ムードメーカー" },
   kai:   { n: "カイ",   full: "海斗 / 21", img: "img/kai.jpg",   c: "#3ddc97", role: "最年長・歌唱力の要" },
   sora:  { n: "ソラ",   full: "空 / 15",   img: "img/sora.jpg",  c: "#4cc9f0", role: "最年少・伸びしろの塊" },
+  takuto:{ n: "タクト", full: "拓翔 / 20", img: "img/takuto.jpg", c: "#f2c94c", role: "癒し系のお兄さん・正義感の塊" },
+  hara:  { n: "ハラ",   full: "陽 / 19",   img: "img/hara.jpg",  c: "#ff7ab8", role: "筋肉ムードメーカー・口癖は「ちゃぼす」" },
 };
-const CAND_IDS = ["shion", "ren", "haru", "kai", "sora"];
+const CAND_IDS = ["shion", "ren", "haru", "kai", "sora", "takuto", "hara"];
 
 /* 審査員（先輩グループ） */
 const JUDGES = [
@@ -72,10 +74,10 @@ const CMDS = [
 ];
 
 const AUDS = [
-  { d: 6,  n: "1次審査",   sub: "自己PR と 歌唱",       q: 10, lv: 2, need: 42, drop: null,   base: { shion: 56, ren: 58, haru: 48, kai: 52, sora: 44 } },
-  { d: 12, n: "2次審査",   sub: "課題曲『RUN』ダンス審査", q: 12, lv: 3, need: 52, drop: "kai",  base: { shion: 65, ren: 67, haru: 56, kai: 58, sora: 52 } },
-  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 60, drop: "sora", base: { shion: 73, ren: 75, haru: 64, sora: 58 } },
-  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 4, need: 68, drop: "haru", base: { shion: 81, ren: 82, haru: 71 } },
+  { d: 6,  n: "1次審査",   sub: "自己PR と 歌唱",       q: 10, lv: 2, need: 42, drop: null,   base: { shion: 56, ren: 58, haru: 48, kai: 52, sora: 44, takuto: 54, hara: 50 } },
+  { d: 12, n: "2次審査",   sub: "課題曲『RUN』ダンス審査", q: 12, lv: 3, need: 52, drop: "kai",  base: { shion: 65, ren: 67, haru: 56, kai: 58, sora: 52, takuto: 63, hara: 58 } },
+  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 60, drop: ["sora", "hara"], base: { shion: 73, ren: 75, haru: 64, sora: 58, takuto: 70, hara: 63 } },
+  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 4, need: 68, drop: ["haru", "takuto"], base: { shion: 81, ren: 82, haru: 71, takuto: 78 } },
   { d: 30, n: "ファイナル審査", sub: "課題曲『STAGE』最終ステージ", q: 15, lv: 5, need: 76, drop: "final", base: { shion: 86, ren: 88 } },
 ];
 const TOTAL_D = 30;
@@ -218,6 +220,42 @@ const TALKS = {
       { t: "「年齢とか関係ないっすよ」", a: 12 },
       { t: "「……そうなんすね」", a: 6 } ] },
   ],
+  takuto: [
+    { t: "「おつかれ。……顔、ちょっと疲れてるな。\nほら、ホットココア。甘いのは正義だぞ」", c: [
+      { t: "「タクトさんこそ癒しの正義です」", a: 15 },
+      { t: "「ありがとうございます……しみる」", a: 13 },
+      { t: "「甘いのはちょっと」", a: 5 } ] },
+    { t: "「さっき、列に割りこんだ人を注意しちゃってさ。\nこわかったけど……見て見ぬふりは、できないんだよな」", c: [
+      { t: "「かっこいいです。おれも見習う」", a: 16 },
+      { t: "「タクトさんらしいですね」", a: 13 },
+      { t: "「危ないですよ」", a: 7 } ] },
+    { t: "ハル「タクトってさ〜、天然だよね！」\nタクト「……は？ 天然じゃないし。ぜんぜん天然じゃないし！？\n……なあ、{name}、おれ天然じゃないよな？？」", c: [
+      { t: "「（笑いをこらえて）天然じゃないです」", a: 14 },
+      { t: "「そういうとこですよ」", a: 12 },
+      { t: "「ちょっと天然です」", a: 8 } ] },
+    { t: "「悩みがあったら、いつでも言えよ。\nおれ、解決はできないかもしれないけど、\n一緒に悩むのは得意なんだ」", c: [
+      { t: "「その言葉だけで十分です」", a: 16 },
+      { t: "実は……と相談してみる", a: 14 },
+      { t: "「大丈夫です！」", a: 7 } ] },
+  ],
+  hara: [
+    { t: "「ちゃぼすー！！ 今日もいい声出てるか！？\n……ん、『ちゃぼす』の意味？ 気合いだよ気合い！\n細かいことはいいんだよ！！」", c: [
+      { t: "「ちゃぼすー！！」", a: 16 },
+      { t: "「その謎の言葉、好きです」", a: 13 },
+      { t: "「意味不明すぎる……」", a: 6 } ] },
+    { t: "「バレーやろうぜバレー！ レシーブ練習付き合って！\nバレーはいいぞ〜、全員でひとつのボールをつなぐ。\n……アイドルと同じだな！」", c: [
+      { t: "「うまいこと言った！ やります」", a: 15 },
+      { t: "「レシーブだけなら」", a: 12 },
+      { t: "「見学してます」", a: 6 } ] },
+    { t: "「腕立て勝負しようぜ！ 負けたほうがプロテインおごり！\n……ちなみにおれ、腹筋は毎日100回な」", c: [
+      { t: "「受けて立つ！」", a: 14 },
+      { t: "「弟子にしてください」", a: 13 },
+      { t: "「遠慮しときます……」", a: 5 } ] },
+    { t: "「（目が真っ赤）……昨日の映画？ ちがうし。\n玉ねぎだし。……うぅ、だって犬が最後に……\nちゃぼすぅ……（泣）」", c: [
+      { t: "「いい涙です。もらい泣きしそう」", a: 15 },
+      { t: "「ハラさんのそういうとこ、好きです」", a: 16 },
+      { t: "「泣きすぎでは」", a: 6 } ] },
+  ],
   sora: [
     { t: "「{name}くん！ 見て見て、逆立ちできるようになった！\n……あっ、あっ、たおれる──」", c: [
       { t: "（あわてて支える）", a: 15 },
@@ -263,6 +301,16 @@ const BONDS = {
     { at: 30, t: "「発声、基礎からやるぞ。……遠回りが、いちばん速い」", fx: { st: { vo: 4 }, msg: "カイの基礎レッスン！ 歌唱力 +4" } },
     { at: 60, t: "「おまえ、伸びたな。\n……おれが教えたことより、先に行ってる」", fx: { st: { vo: 6, me: 4 }, msg: "カイが認めてくれた" } },
     { at: 90, t: "「おれが行けなかったところまで、行ってくれ。\n……たのむ」", fx: { st: { vo: 7, me: 7 }, msg: "カイとの絆・最大" } },
+  ],
+  takuto: [
+    { at: 30, t: "「（練習後、そっとベンチに座ってきた）\n……無理すんな、とは言わないよ。\nがんばりたい日だってあるからな。\n……ほら、ココア。半分こな」", fx: { stam: 30, msg: "タクトのココアで回復！ 体力 +30" } },
+    { at: 60, t: "「今日さ、おまえをからかってたやつに、ちょっと本気で怒っちゃった。\n……大人げないって笑うなよ。\n仲間のことになると、どうも抑えがきかないんだ」", fx: { st: { me: 5, tk: 4 }, msg: "タクトの正義感が心にしみた" } },
+    { at: 90, t: "「おれはたぶん、ステージの真ん中より、\nだれかを支えるほうが向いてる。\nでも、おまえを見てたら……真ん中も悪くないなって思えてきた。\n……最後まで、一緒に行こう」", fx: { st: { vo: 6, me: 6 }, msg: "タクトとの絆・最大" } },
+  ],
+  hara: [
+    { at: 30, t: "「ちゃぼすー！！ よし、今日からおまえはおれの筋トレ仲間な！\nまずはスクワット10回から！ 体力は全部の土台だぞ！」", fx: { stam: 20, st: { ex: 3 }, msg: "ハラの筋トレ講座！ 体力 +20" } },
+    { at: 60, t: "「（バレーボールを見せて）これ、中学からの相棒。\n夢はいくつあってもいいんだぜ。\nおれはアイドルも、バレーも、筋トレも、ぜーんぶ本気！」", fx: { st: { da: 5, me: 4 }, msg: "ハラの全力主義が伝染した" } },
+    { at: 90, t: "「……っだあ、泣いてねえし！ ちゃぼすだし！\n……おまえの頑張り見てたら、涙腺がよぉ……。\nおれ、おまえのファン1号な。\nデビューしても、ずっとだかんな！！」", fx: { st: { ex: 6, me: 6 }, fans: 600, msg: "ハラとの絆・最大" } },
   ],
   sora: [
     { at: 30, t: "「{name}くんのノート、写させてください！\n……計算、こうやって速くするんだ……！」", fx: { st: { me: 4 }, msg: "ソラが慕ってくる。精神力 +4" } },
@@ -348,6 +396,15 @@ const EVENTS = [
   { id: "e25", c: "sora", t: "「{name}くん、あのね……ぼく、決めました。\n{name}くんをライバルにします！ 目標じゃなくて、ライバル！\n……だめ、ですか？」", need: { sora: 40 }, ch: [
     { t: "「望むところだ、ライバル」", fx: { aff: { sora: 13 }, st: { me: 4 } } },
     { t: "「うれしいよ。一緒に強くなろう」", fx: { aff: { sora: 11 }, cond: 1 } } ] },
+  { id: "e27", c: "takuto", t: "ハル「タクトの寝ぐせ、鳥の巣みたーい！」\nタクト「……は？ セットだし。これはセットだし！！\n{name}もそう思うよな！？（ちょっと本気の顔）」", ch: [
+    { t: "「セ、セットに見えます」", fx: { aff: { takuto: 10, haru: 4 }, st: { tk: 3 } } },
+    { t: "「かわいい寝ぐせだと思います」", fx: { aff: { takuto: 6 }, cond: 1 } } ] },
+  { id: "e28", c: "hara", t: "「ちゃぼすー！ 朝トレ付き合え！！\n朝日を浴びながらのランニング、最っ高だぞ！」", ch: [
+    { t: "走る！", fx: { stam: -12, st: { da: 4, me: 3 }, aff: { hara: 8 } } },
+    { t: "「夕方なら……」", fx: { aff: { hara: 3 }, stam: 8 } } ] },
+  { id: "e29", c: "hara", t: "「（ソラの成長動画を見ながら号泣）\nうぅ……最初はレシーブもできなかったのに……\nじゃなくて、振りも覚えられなかったのにぃ……ちゃぼす……」", ch: [
+    { t: "「ハラさんは仲間思いですね」", fx: { aff: { hara: 10, sora: 4 } } },
+    { t: "もらい泣きする", fx: { aff: { hara: 12 }, st: { ex: 3 } } } ] },
   { id: "e26", c: "kanade", t: "「みんなには内緒だけど……次の審査、\n合格ラインぎりぎりの子から順に発表する演出らしい。\n……心の準備、しておいてね」", ch: [
     { t: "「教えてくれてありがとうございます」", fx: { st: { me: 5 } } },
     { t: "「ドキドキさせないでください！」", fx: { st: { tk: 3 }, cond: 1 } } ] },
@@ -470,6 +527,12 @@ $("btnCont").onclick = () => {
   G.fixedSeen = G.fixedSeen || []; G.evseen = G.evseen || [];
   G.song = G.song || null; G.solo = G.solo || null; G.leader = G.leader || null;
   G.revengeOK = G.revengeOK || 0; G.milesSeen = G.milesSeen || []; G.fanMilesSeen = G.fanMilesSeen || [];
+  if (!("takuto" in G.aff)) {
+    G.aff.takuto = 0; G.aff.hara = 0;
+    if (G.auds.length < 2 && !G.alive.includes("hara")) G.alive.push("hara");
+    if (G.auds.length < 3 && !G.alive.includes("takuto")) G.alive.push("takuto");
+  }
+  G.sushiDone = G.sushiDone || false;
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -531,12 +594,12 @@ $("btnStart").onclick = () => {
     day: 1, stam: 100 + (t.stam || 0) + up.stam * 10, maxStam: 100 + (t.stam || 0) + up.stam * 10,
     cond: 2, fans: up.fan * 500,
     st: { vo: base, da: base, ex: base, tk: base, me: base },
-    aff: { shion: up.aff * 10, ren: up.aff * 10, haru: up.aff * 10, kai: up.aff * 10, sora: up.aff * 10 },
+    aff: { shion: up.aff * 10, ren: up.aff * 10, haru: up.aff * 10, kai: up.aff * 10, sora: up.aff * 10, takuto: up.aff * 10, hara: up.aff * 10 },
     pf: { pi: 0, frac: 0, ratio: 0, gyaku: 0, kufuu: 0 },
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
-    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [],
+    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false,
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
   DB.run = G; save(); sfx.clear();
@@ -774,6 +837,61 @@ function finishLesson(cmd, r) {
   showResult({ title: `${cmd.e} ${cmd.n}`, r, gains, fans, after: () => checkSkills(() => endDay()) });
 }
 
+/* ================= くら寿司イベント（タクトと回転ずし） ================= */
+const SUSHI_QS = [
+  { q: "1皿に 2かんのまぐろ。7皿食べると ぜんぶで何かん？", a: { t: "num", v: 14, unit: "かん" }, tag: "すし算" },
+  { q: "1皿 115円のお寿司を 8皿。代金は 何円？", a: { t: "num", v: 920, unit: "円" }, tag: "すし算", note: "くふう：115×8＝(100＋15)×8" },
+  { q: "タクトときみで 合わせて21皿。タクトはきみの 2倍食べた。きみは 何皿？", a: { t: "num", v: 7, unit: "皿" }, tag: "すし算（倍数算）", note: "きみ＋きみ×2＝21" },
+  { q: "5皿ごとに ガチャが1回まわせる。23皿では 何回まわせる？", a: { t: "num", v: 4, unit: "回" }, tag: "すし算（周期）", note: "23÷5 の商" },
+  { q: "サーモン120円を 6皿、たまご90円を 4皿。合計は 何円？", a: { t: "num", v: 1080, unit: "円" }, tag: "すし算", note: "720＋360" },
+];
+function startSushi(done) {
+  showEvent({
+    c: "takuto",
+    t: "「{name}！ 今日は特訓なし！\n……じゃーん。くら寿司の割引券、もらっちゃった。\n一緒に行こうぜ。\n\nたくさん食べるやつは、伸びる。\nこれ、お兄さんの持論な」",
+    ch: [{ t: "🍣 行く！！", fx: {}, after: () => startQuiz({
+      mode: "lesson", genre: "kufuu", lv: 3, total: 5,
+      fixed: SUSHI_QS.map(q => ({ ...q, small: true, time: 60, genre: "kufuu" })),
+      title: "🍣 回転ずしチャレンジ",
+      onEnd: r => {
+        G.totalQ += r.total; G.totalOK += r.correct;
+        const heal = 40;
+        G.stam = Math.min(G.maxStam, G.stam + heal);
+        const gains = [];
+        STATS.forEach(st => { const d = addStat(st.k, 3); if (d) gains.push([st.n, d]); });
+        G.aff.takuto = clamp((G.aff.takuto || 0) + 15, 0, 100);
+        const perfect = r.correct === 5;
+        if (perfect) G.fans += 500;
+        confetti(perfect ? 50 : 24); sfx.clear(); save();
+        $("resPanel").innerHTML = `
+          <div class="resHead">
+            <div class="lbl">🍣 回転ずしチャレンジ</div>
+            <div class="resScore" style="font-size:34px">${r.correct} / 5 皿</div>
+            <div class="resRank" style="background:${perfect ? "#ffcf5c" : "#4ad6b8"};color:#0a0a11">${perfect ? "🎉 ガチャ大当たり！" : "ごちそうさま！"}</div>
+          </div>
+          <div class="gains">
+            <div class="gain"><span>体力（おいしいごはん）</span><b>+${heal}</b></div>
+            ${gains.map(g => `<div class="gain"><span>${g[0]}</span><b>+${g[1]}</b></div>`).join("")}
+            <div class="gain"><span>タクトの好感度</span><b>+15</b></div>
+            ${perfect ? `<div class="gain"><span>📈 注目度（ガチャ大当たり）</span><b>+500</b></div>` : ""}
+          </div>
+          <button class="btn" id="resOk">ごちそうさま</button>`;
+        $("ovResult").classList.add("on");
+        $("resOk").onclick = () => {
+          sfx.tap(); $("ovResult").classList.remove("on");
+          showEvent({
+            c: "takuto",
+            t: perfect
+              ? "「全問正解かよ！ 参ったな……\nガチャの景品、おまえにやるよ。\n\n……こういう時間も、ぜんぶ力になるんだ。\nまた来ような。次はおれのおごり」"
+              : "「よく食べたな〜。……いい顔になった。\n\n机の前だけが練習じゃない。\nこういう時間も、ぜんぶ力になるんだよ。\n……また来よう」",
+            ch: [{ t: "「ごちそうさまでした！」", fx: { cond: 1 }, after: done }]
+          });
+        };
+      }
+    }) }]
+  });
+}
+
 /* ================= 応援ライン ================= */
 function cheerLine() {
   const hot = Q && Q.combo >= 6;
@@ -781,10 +899,12 @@ function cheerLine() {
     ["shion", "「……見事」"], ["shion", "「……おまえ、輝いてる」"], ["haru", "「うおおお止まらねえ！！」"],
     ["haru", "「もはや無敵じゃん！？」"], ["kai", "「これが本気か……！」"], ["ren", "「……やるじゃねえか！」"],
     ["ren", "「その集中力、本物だ」"], ["sora", "「かっこよすぎます！！」"], ["sora", "「ぼくの推し、最強……！」"],
+    ["takuto", "「……お兄さん、感動しちゃうよ」"], ["hara", "「ちゃぼすちゃぼすちゃぼすー！！」"],
   ] : [
     ["shion", "「……いい」"], ["shion", "「……その調子」"], ["haru", "「ナイスー！」"], ["haru", "「いいよいいよ〜！」"],
     ["haru", "「さすが！」"], ["kai", "「その調子だ」"], ["kai", "「いいリズムだ」"], ["ren", "「悪くないな」"],
     ["ren", "「ふん、まあまあだ」"], ["sora", "「すごいすごい！」"], ["sora", "「ぼくも続きます！」"],
+    ["takuto", "「うんうん、いい調子」"], ["hara", "「ちゃぼす！！」"], ["hara", "「ナイスアタック！」"],
   ];
   const cands = candLines.filter(x => !G || !G.alive || G.alive.includes(x[0])).map(x => `${CANDS[x[0]].n}${x[1]}`);
   const judges = hot
@@ -948,6 +1068,10 @@ function endDay() {
     G.milesSeen.push(mile); save();
     const ev = MILE_EV[mile];
     return showEvent({ c: ev.c, t: `🏅 通算${mile}問 とっぱ！\n\n${ev.t}`, ch: [{ t: "▶", fx: { st: { me: 3 }, cond: 1 }, after: () => endDay() }] });
+  }
+  if (!G.sushiDone && G.alive.includes("takuto") && G.day >= 5 && Math.random() < .4) {
+    G.sushiDone = true; save();
+    return startSushi(() => afterDay());
   }
   for (const id of G.alive) {
     const b = (BONDS[id] || []).find(x => G.aff[id] >= x.at && !G.bonds.includes(id + x.at));
@@ -1381,7 +1505,7 @@ function finishAudition(a, idx, r) {
 /* ================= 合格者発表 ================= */
 function announce(a, idx, board, pass, tier) {
   const isFinal = idx === 4;
-  const dropId = a.drop && a.drop !== "final" ? a.drop : null;
+  const drops = !a.drop || a.drop === "final" ? [] : (Array.isArray(a.drop) ? a.drop : [a.drop]);
   show("scrAnn");
   $("annTitle").textContent = isFinal ? "最 終 結 果 発 表" : "合 格 者 発 表";
   $("annSub").innerHTML = "";
@@ -1409,7 +1533,7 @@ function announce(a, idx, board, pass, tier) {
     if (isFinal) {
       passIds = board.slice(0, 2).map(b => b.id);
     } else {
-      passIds = board.map(b => b.id).filter(id => id !== dropId);
+      passIds = board.map(b => b.id).filter(id => !drops.includes(id));
     }
     order = [...board].reverse();
     $("annSub").innerHTML = isFinal ? "「デビューは、この2人だ」" : "";
@@ -1457,9 +1581,14 @@ function announce(a, idx, board, pass, tier) {
           G.warn = true;
           toast("⚠ 崖っぷち：次の審査で挽回できなければ脱落");
         } else { G.warn = false; }
-        if (dropId) {
-          G.alive = G.alive.filter(x => x !== dropId);
-          return showEvent({ c: dropId, t: dropLine(dropId), ch: [{ t: "▶", fx: dropFx(dropId), after: () => afterDay() }] });
+        if (drops.length) {
+          const doDrop = k => {
+            if (k >= drops.length) return afterDay();
+            const d = drops[k];
+            G.alive = G.alive.filter(x => x !== d);
+            showEvent({ c: d, t: dropLine(d), ch: [{ t: "▶", fx: dropFx(d), after: () => doDrop(k + 1) }] });
+          };
+          return doDrop(0);
         }
         afterDay();
       };
@@ -1471,11 +1600,13 @@ function dropLine(id) {
     kai: "「……21歳。ここが限界だった。\n\nでもな、{name}。おれの分まで行けなんて言わない。\nおまえは、おまえの理由で行け。\n\n……見てるから」",
     sora: "「くやしいです。ほんとに、くやしいです。\n\nでも、ぼく15歳なので。\n来年も、再来年も受けます。\n\n{name}くん、その時は先輩でいてください」",
     haru: "「あーあ、終わっちゃった。\n……ごめん、ちょっとだけ泣かせて。\n\nおれの分の空気、持っていけよ。\n{name}なら、あの舞台、似合うから」",
+    hara: "「……ちゃぼすぅぅ……（号泣）\nダメだ、涙とまんねぇ……！\n\nでもな、悔いはねぇんだ。全力でやった。\nバレーと同じだよ。トスを上げるやつがいて、アタックが決まる。\n\n{name}、おれのトスだ。……決めてこい！」",
+    takuto: "「……そっか。ここまでか。\n……ふしぎと、すっきりしてるよ。\nおまえたちの成長を、いちばん近くで見られたから。\n\nなあ、デビューしたら、また回転ずし行こうな。\n今度はおれのおごり。\n……順位より、その約束のほうがずっと大事だ」",
   };
   return t[id] || "「……ここまでだ」";
 }
 function dropFx(id) {
-  const f = { kai: { st: { vo: 5, me: 4 } }, sora: { st: { me: 6 } }, haru: { st: { ex: 5, me: 5 } } };
+  const f = { kai: { st: { vo: 5, me: 4 } }, sora: { st: { me: 6 } }, haru: { st: { ex: 5, me: 5 } }, hara: { st: { me: 5, ex: 4 } }, takuto: { st: { me: 6, vo: 4 } } };
   return Object.assign({ msg: `${CANDS[id].n} が去った。想いを受け取った` }, f[id] || {});
 }
 
@@ -1593,6 +1724,8 @@ function bondEndText(id, rk) {
     haru:  "「うおおお やったな！！<br>……おれの分も、頼んだぞ」",
     kai:   "「よくやった。<br>……おれが行けなかった場所だ。しっかり立ってろ」",
     sora:  "「かっこよかったです！<br>ぼくも、来年ぜったい行きます」",
+    takuto: "「約束、覚えてるか？ 回転ずし。<br>……おれのおごりだ。何皿でも食え」",
+    hara:  "「ちゃぼすーー！！（号泣）<br>……ダメだ、言葉になんねぇ！！ 最高だよおまえ！！」",
   };
   return t[id] + (rk === "S" ? `<br><span style="color:var(--gold)">☆ BEST ENDING ☆</span>` : "");
 }
