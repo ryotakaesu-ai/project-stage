@@ -703,7 +703,7 @@ $("btnCont").onclick = () => {
     if (G.auds.length < 4) G.alive.push("shuto");
     G.alive.push("shino");
   }
-  G.sushiDone = G.sushiDone || false; G.saisonDone = G.saisonDone || false;
+  G.sushiDone = G.sushiDone || false; G.saisonDone = G.saisonDone || false; G.recentScores = G.recentScores || [];
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -716,6 +716,8 @@ function openHelp() {
   <div class="list">
     <div class="item"><span class="ie">📅</span><div class="it"><b>1日1コマンド</b>
       <small>練習・休養・交流から1つ選ぶ。DAY6／12／18／24／30が審査。</small></div></div>
+    <div class="item"><span class="ie">📈</span><div class="it"><b>問題のレベルは自動で変わる</b>
+      <small>日がたつほど上がる（Lv1〜5）。さらに<u>直近の練習が好調ならもっと難しく、苦戦が続いたらやさしく戻る</u>。いまのレベルは練習ボタンに表示。</small></div></div>
     <div class="item"><span class="ie">🧮</span><div class="it"><b>練習＝計算バトル</b>
       <small>8問の計算に答える。<u>速く正確に</u>解けるほどステータスが伸びる。3秒以内でPERFECT。</small></div></div>
     <div class="item"><span class="ie">⚖️</span><div class="it"><b>タイムレッスーの3人は見るところが違う</b>
@@ -770,7 +772,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
-    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false, saisonDone: false,
+    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false, saisonDone: false, recentScores: [],
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
   DB.run = G; save(); sfx.clear();
@@ -840,11 +842,12 @@ function renderMain() {
       <span class="ce">🎬</span><span><b>${a.n} へ</b><small>${a.sub}</small></span></button>`;
   } else {
     const fx = skillFx(), extra = inCamp() ? 4 : 0;
+    const lv = lessonLv();
     $("mCmds").innerHTML = CMDS.map(c => {
       const cost = Math.max(6, c.st + fx.st + extra);
       const low = G.stam < cost;
       return `<button class="cmd" data-c="${c.id}">
-        <span class="ce">${c.e}</span><span><b>${c.n}</b><small>${c.s}</small>
+        <span class="ce">${c.e}</span><span><b>${c.n}</b><small>${c.s}　<span style="color:var(--gold)">Lv.${lv}</span></small>
         <span class="cost" style="${low ? "color:#e63946" : ""}">体力 −${cost}</span></span></button>`;
     }).join("") +
       (inCamp() && G.team ? `<button class="cmd team wide" data-c="teamp"><span class="ce">🎬</span>
@@ -916,7 +919,23 @@ function doCmd(c) {
 }
 function lessonLv() {
   const d = G.day;
-  return d <= 5 ? 1 : d <= 11 ? 2 : d <= 18 ? 3 : d <= 25 ? 4 : 5;
+  const base = d <= 4 ? 1 : d <= 10 ? 2 : d <= 17 ? 3 : d <= 24 ? 4 : 5;
+  return clamp(base + lvAdjust(), 1, 5);
+}
+/* 実力連動：好調なら難しく、苦戦したらやさしく戻す（自信を折らないため下げは反応を速く） */
+function lvAdjust() {
+  const rec = (G && G.recentScores) || [];
+  if (rec.length >= 2) {
+    const last2 = rec.slice(-2).reduce((a, b) => a + b, 0) / 2;
+    if (last2 < 38) return -2;          /* かなり苦戦 → 大きく戻す */
+    if (last2 < 55) return -1;          /* 苦戦 → 1段やさしく */
+  }
+  if (rec.length >= 3) {
+    const last3 = rec.slice(-3).reduce((a, b) => a + b, 0) / 3;
+    if (last3 >= 93) return 2;          /* 余裕 → 一気に上げる */
+    if (last3 >= 82) return 1;          /* 好調 → 1段むずかしく */
+  }
+  return 0;
 }
 function doRest() {
   const heal = ri(40, 60) + (G.cond >= 3 ? 10 : 0);
@@ -1012,6 +1031,11 @@ function finishLesson(cmd, r) {
   if (r.score >= 95 && r.correct === r.total) { G.pf[cmd.g] = (G.pf[cmd.g] || 0) + 1; G.perfectLesson++; }
   G.totalQ += r.total; G.totalOK += r.correct;
   G.bestCombo = Math.max(G.bestCombo, r.best);
+  const lvBefore = lessonLv();
+  G.recentScores = (G.recentScores || []).concat(r.score).slice(-5);
+  const lvAfter = lessonLv();
+  if (lvAfter > lvBefore) setTimeout(() => toast(`📈 問題のレベルが上がった！ Lv.${lvBefore} → Lv.${lvAfter}`), 900);
+  else if (lvAfter < lvBefore) setTimeout(() => toast(`🌱 いったん基礎にもどろう　Lv.${lvBefore} → Lv.${lvAfter}`), 900);
   if (G.over && Math.random() < .35) G.cond = clamp(G.cond - 1, 0, 4);
   showResult({ title: `${cmd.e} ${cmd.n}`, r, gains, fans, after: () => checkSkills(() => endDay()) });
 }
