@@ -703,7 +703,7 @@ $("btnCont").onclick = () => {
     if (G.auds.length < 4) G.alive.push("shuto");
     G.alive.push("shino");
   }
-  G.sushiDone = G.sushiDone || false;
+  G.sushiDone = G.sushiDone || false; G.saisonDone = G.saisonDone || false;
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -770,7 +770,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
-    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false,
+    song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false, saisonDone: false,
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
   DB.run = G; save(); sfx.clear();
@@ -1073,6 +1073,60 @@ function startSushi(done) {
   });
 }
 
+/* ================= saisonイベント（ソウ先輩と五反田のパン屋） ================= */
+const SAISON_QS = [
+  { q: "バスクチーズケーキは 1切れ480円。ソウ先輩と1切れずつ食べて、おみやげに3切れ買った。ぜんぶで何円？", a: { t: "num", v: 2400, unit: "円" }, tag: "スイーツ算", note: "480×(2＋3)" },
+  { q: "クロワッサンは 1個180円。3個買うと1割引きになる。3個ではらうのは 何円？", a: { t: "num", v: 486, unit: "円" }, tag: "スイーツ算", note: "180×3×0.9" },
+  { q: "ホールのチーズケーキは 6等分の1切れが480円。ホールごと買うと2割引き。ホール1個は 何円？", a: { t: "num", v: 2304, unit: "円" }, tag: "スイーツ算", note: "480×6×0.8" },
+];
+function startSaison(done) {
+  showEvent({
+    c: "kanade",
+    t: "「ねえ、{name}くん。このあと、少しだけ時間ある？\n\nチーズケーキがおいしいところがあるんだ。\n五反田の、saisonっていうパン屋さん。\n\n……がんばってる子には、ごほうびが必要でしょ。ないしょだよ」",
+    ch: [{ t: "🧀 ついていく！", fx: {}, after: () => showEvent({
+      c: "kanade",
+      t: "（電車に乗って、五反田へ。\n小さなパン屋さんの店先で、ソウ先輩がバスクチーズケーキをふたつ買ってくれた）\n\n「んん……おいしー！！\nここのバスクチーズケーキ、ほんとに最高なんだ。\n\n五反田って好きでさ、けっこうこのへんにご飯食べに来るんだ。\nこないだ、フマとも来たよ。あいつ、2切れ食べてた」\n\n（ソウ先輩が、ふとメニューの値段を指さした）\n\n「……ねえ、せっかくだから。ちょっとだけ、頭の体操しない？」",
+      ch: [{ t: "「やります！」", fx: {}, after: () => startQuiz({
+        mode: "lesson", genre: "ratio", lv: 3, total: 3,
+        fixed: SAISON_QS.map(q => ({ ...q, small: true, time: 60, genre: "ratio" })),
+        title: "🧀 saisonのスイーツ算",
+        onEnd: r => {
+          G.totalQ += r.total; G.totalOK += r.correct;
+          const heal = 40;
+          G.stam = Math.min(G.maxStam, G.stam + heal);
+          addStat("me", 5);
+          G.cond = clamp(G.cond + 1, 0, 4);
+          const perfect = r.correct === 3;
+          if (perfect) G.fans += 300;
+          confetti(perfect ? 40 : 20); sfx.clear(); save();
+          $("resPanel").innerHTML = `
+            <div class="resHead">
+              <div class="lbl">🧀 saisonのスイーツ算</div>
+              <div class="resScore" style="font-size:34px">${r.correct} / 3 問</div>
+              <div class="resRank" style="background:${perfect ? "#ffcf5c" : "#4ad6b8"};color:#0a0a11">${perfect ? "ソウ先輩もびっくり！" : "ごちそうさま！"}</div>
+            </div>
+            <div class="gains">
+              <div class="gain"><span>体力（バスクチーズケーキ）</span><b>+${heal}</b></div>
+              <div class="gain"><span>精神力（ソウ先輩と過ごした時間）</span><b>+5</b></div>
+              <div class="gain"><span>調子</span><b>アップ</b></div>
+              ${perfect ? `<div class="gain"><span>📈 注目度（先輩のSNSに載った）</span><b>+300</b></div>` : ""}
+            </div>
+            <button class="btn" id="resOk">ごちそうさまでした</button>`;
+          $("ovResult").classList.add("on");
+          $("resOk").onclick = () => {
+            sfx.tap(); $("ovResult").classList.remove("on");
+            showEvent({
+              c: "kanade",
+              t: "（帰り道、ソウ先輩がぽつりと言った）\n\n「……ひとつだけ、覚えておいて。\n\n緊張はね、消そうとしなくていいんだ。\n緊張は『大事にしたい』って気持ちの形だから。\n深呼吸して、となりに置いておけばいい。\n\nそれと——がんばる日と、ゆるめる日。\n両方そろって、はじめて強くなれる。\n今日みたいな日も、ちゃんと練習のうちだよ」",
+              ch: [{ t: "「今日のこと、忘れません」", fx: { st: { me: 3 } }, after: done }]
+            });
+          };
+        }
+      }) }]
+    }) }]
+  });
+}
+
 /* ================= 応援ライン ================= */
 function cheerLine() {
   const hot = Q && Q.combo >= 6;
@@ -1274,6 +1328,10 @@ function endDay() {
   if (!G.sushiDone && G.alive.includes("takuto") && G.day >= 5 && Math.random() < .4) {
     G.sushiDone = true; save();
     return startSushi(() => afterDay());
+  }
+  if (!G.saisonDone && G.day >= 10 && Math.random() < .4) {
+    G.saisonDone = true; save();
+    return startSaison(() => afterDay());
   }
   for (const id of G.alive) {
     const b = (BONDS[id] || []).find(x => G.aff[id] >= x.at && !G.bonds.includes(id + x.at));
