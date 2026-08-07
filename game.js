@@ -1082,6 +1082,7 @@ const SAISON_QS = [
 function startSaison(done) {
   showEvent({
     c: "kanade",
+    scene: "img/scene_saison.jpg",
     t: "「ねえ、{name}くん。このあと、少しだけ時間ある？\n\nチーズケーキがおいしいところがあるんだ。\n五反田の、saisonっていうパン屋さん。\n\n……がんばってる子には、ごほうびが必要でしょ。ないしょだよ」",
     ch: [{ t: "🧀 ついていく！", fx: {}, after: () => showEvent({
       c: "kanade",
