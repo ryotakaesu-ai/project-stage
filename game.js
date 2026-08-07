@@ -1847,6 +1847,7 @@ function announce(a, idx, board, pass, tier) {
       row.innerHTML = `<img src="${b.img}" alt=""><div class="an">${esc(b.n)}${b.me ? "（きみ）" : ""}</div>
         <div class="ax" style="${label === "崖っぷち" ? "color:#e63946" : ""}">${label}</div>`;
       $("annList").appendChild(row);
+      row.scrollIntoView({ behavior: "smooth", block: "nearest" });
       if (ok) sfx.good(); else sfx.bad();
       i++; setTimeout(next, 900);
     };
@@ -1855,6 +1856,7 @@ function announce(a, idx, board, pass, tier) {
     function finish() {
       $("annBtn").classList.remove("hide");
       $("annBtn").textContent = "▶";
+      setTimeout(() => $("annBtn").scrollIntoView({ behavior: "smooth", block: "center" }), 120);
       $("annBtn").onclick = () => {
         sfx.tap();
         if (isFinal) {
