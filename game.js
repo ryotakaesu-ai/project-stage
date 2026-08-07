@@ -985,6 +985,7 @@ const SUSHI_QS = [
 function startSushi(done) {
   showEvent({
     c: "takuto",
+    scene: "img/scene_sushi.jpg",
     t: "「{name}！ 今日は特訓なし！\n……じゃーん。くら寿司の割引券、もらっちゃった。\n一緒に行こうぜ。\n\nたくさん食べるやつは、伸びる。\nこれ、お兄さんの持論な」",
     ch: [{ t: "🍣 行く！！", fx: {}, after: () => startQuiz({
       mode: "lesson", genre: "kufuu", lv: 3, total: 5,
@@ -1018,6 +1019,7 @@ function startSushi(done) {
           sfx.tap(); $("ovResult").classList.remove("on");
           showEvent({
             c: "takuto",
+            scene: "img/scene_sushi.jpg",
             t: perfect
               ? "「全問正解かよ！ 参ったな……\nガチャの景品、おまえにやるよ。\n\n……こういう時間も、ぜんぶ力になるんだ。\nまた来ような。次はおれのおごり」"
               : "「よく食べたな〜。……いい顔になった。\n\n机の前だけが練習じゃない。\nこういう時間も、ぜんぶ力になるんだよ。\n……また来よう」",
@@ -1390,7 +1392,7 @@ function showEvent(e) {
   if (G && !G.done) renderMain();
   $("evPanel").innerHTML = `
     <div class="evTop"><img src="${p.img}" alt=""><div class="evName">${p.n}</div></div>
-    <div class="evBody">${rep(e.t).replace(/\n/g, "<br>")}</div>
+    <div class="evBody">${e.scene ? `<img src="${e.scene}" style="width:100%;border-radius:12px;margin-bottom:10px;display:block">` : ""}${rep(e.t).replace(/\n/g, "<br>")}</div>
     <div class="evChoices">${e.ch.map((ch, i) => `<button class="evc" data-i="${i}">${rep(ch.t)}</button>`).join("")}</div>`;
   $("ovEvent").classList.add("on");
   $("evPanel").querySelectorAll(".evc").forEach(b => b.onclick = () => {
