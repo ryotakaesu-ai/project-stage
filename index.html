@@ -343,6 +343,22 @@ input{font-family:inherit;font-weight:800}
   .key{padding:11px 0;font-size:19px}
   #qText{font-size:clamp(19px,6.4vw,28px)}
 }
+
+/* ===== 生配信SP ===== */
+#liveLayer{position:absolute;inset:0;pointer-events:none;z-index:6}
+#liveViewers{position:absolute;top:calc(44px + env(safe-area-inset-top));left:12px;font-size:11px;font-weight:900;
+  background:#e63946dd;color:#fff;padding:3px 10px;border-radius:99px;letter-spacing:.04em}
+#liveTrend{position:absolute;top:calc(70px + env(safe-area-inset-top));left:12px;font-size:11px;font-weight:900;
+  background:linear-gradient(90deg,#ffcf5c,#ff8ad8);color:#0a0a11;padding:3px 10px;border-radius:99px;
+  animation:livePulse 1s ease-in-out infinite}
+@keyframes livePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+#liveComs{position:absolute;right:8px;bottom:42%;width:64%;display:flex;flex-direction:column;align-items:flex-end;gap:5px;overflow:hidden}
+.liveCom{font-size:11px;font-weight:800;background:#000000aa;color:#fff;padding:4px 11px;border-radius:99px;
+  max-width:100%;animation:comIn .3s ease-out, comOut .5s 3.2s forwards}
+.liveCom.g{background:#4ad6b8dd;color:#04231c}
+.liveCom.b{background:#ff4d63dd}
+@keyframes comIn{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+@keyframes comOut{to{opacity:0;transform:translateY(-8px)}}
 </style>
 </head>
 <body>
@@ -433,6 +449,11 @@ input{font-family:inherit;font-weight:800}
   </div>
   <div id="pad"></div>
   <div id="qFb"></div>
+  <div id="liveLayer" class="hide">
+    <div id="liveViewers">👁 0</div>
+    <div id="liveTrend" class="hide">🔥 SNSトレンド入り！</div>
+    <div id="liveComs"></div>
+  </div>
 </section>
 
 <!-- ============ ANNOUNCE ============ -->

@@ -96,6 +96,26 @@ const AUDS = [
   { d: 30, n: "ファイナル審査", sub: "課題曲『STAGE』最終ステージ", q: 15, lv: 5, need: 76, dropN: 0, base: { shion: 86, ren: 88, shino: 85, takuto: 83, hara: 82, shuto: 78, daigo: 84, yuma: 81, haru: 76, kai: 75, sora: 72, roi: 77, noa: 76, masaki: 79 } },
 ];
 const TOTAL_D = 30;
+/* オープニングのあいさつ（周回ごとにランダム。世界観は固定、言い回しは変化） */
+const OPENING_FUMA = [
+  n => `「おれたちは『タイムレッスー』。\nこのオーディションは、おれたちの新しい仲間を探す場だ。\n\n20,000人応募して、残っているのは12人。デビュー枠は5つ。\n\n言っとくけど、おれたちの人生も懸かってる。\n${n}。……覚悟はあるか」`,
+  n => `「よく来たな。おれがリーダーのフマだ。\n\n先に言っとく。おれは死ぬほど売れたいんだよ。\nだから、一緒に売れる気のないやつはいらない。\n\n20,000人の中から残った12人。デビュー枠は5つ。\n${n}。……おまえは、どこまで行きたい？」`,
+  n => `「……ふうん。おまえが${n}か。\n\nエントリーシート、読んだぞ。『計算が武器』って書いてあったな。\n面白い。武器があるやつは強い。\n\nでもな、武器は磨かなきゃただの荷物だ。\n30日間、磨き続けられるか。……見せてみろ」`,
+  n => `「集合、ごくろう。時間ぴったりだな。……いいスタートだ。\n\nおれたちは新しい仲間を探しに来た。\n妥協する気はない。1ミリもだ。\n\nこのオーディションが終わる日、\n${n}、おまえの名前をおれに呼ばせてみろ」`,
+];
+const OPENING_SHORI = [
+  () => "「そんなに固くならなくていいよ。\n\nこれはオーディションじゃなくて、仲間探しだから。\n選ぶんじゃない。……出会いに来たんだ、僕たちは」",
+  () => "「フマの圧、すごかったでしょ（笑）\n\nでも安心して。あの人、本気の人にはとことん優しいから。\n\n僕はショリ。……きみの本気、楽しみにしてるね」",
+  () => "「はじめまして。……うん、いい目をしてる。\n\n僕はね、技術より先に目を見るんだ。\n目が本気の子は、technique はあとから絶対ついてくる。\n\n……きみは、大丈夫そうだ」",
+  () => "「緊張してる？ ……僕も初日、めちゃくちゃ緊張してたよ。\n\n先輩の前で挨拶の声、裏返ったからね（笑）\n\nでもさ、緊張は敵じゃない。本気の証拠。\n……ようこそ、仲間探しの30日間へ」",
+];
+const OPENING_SOU = [
+  () => "「僕たちも、君に選ばれる立場だからね。\nお互い、いいところを見せ合おう。\n\n……こわくなったら、僕の顔を見て。\nずっと味方だから」",
+  () => "「はじめまして。……ふふ、握手しよう。\n\n30日間って、長いようで、あっという間だよ。\nだからね、毎日ひとつだけ、いいことを見つけて。\n\n『今日はこれができた』って。……それが君を強くするから」",
+  () => "「ようこそ。……ああ、いい顔だ。\n\n僕はね、活動をお休みしてた時期があるんだ。\nだから知ってる。夢に向かえる毎日が、どれだけ贅沢か。\n\nこの30日、めいっぱい味わってね。……つらい日も、ぜんぶ」",
+  () => "「緊張してるね。……大丈夫、それでいいの。\n\n僕たちの前で上手にやろうとしなくていい。\n下手でもいいから、本気でやって。\n\n本気は、ぜったいに伝わるから。……ね？」",
+];
+
 const CAMP = [13, 18];   /* 合宿期間 */
 const PHASE = d => d <= 6 ? "1次審査まで" : d <= 12 ? "2次審査まで" : d <= 18 ? "強化合宿" : d <= 24 ? "4次審査まで" : "ファイナルまで";
 
@@ -967,6 +987,7 @@ $("btnCont").onclick = () => {
   G.talent = G.talent || {}; G.usedExits = G.usedExits || [];
   G.hinoUsed = G.hinoUsed || {}; G.hinoSceneUsed = G.hinoSceneUsed || [];
   G.nichiUsed = G.nichiUsed || []; G.nichiSceneUsed = G.nichiSceneUsed || []; G.sapixSceneUsed = G.sapixSceneUsed || []; G.visitCount = G.visitCount || 0;
+  G.liveDone = G.liveDone || false; G.concertDone = G.concertDone || false; G.qboxUsed = G.qboxUsed || [];
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -1035,7 +1056,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
-    talent: Object.fromEntries(CAND_IDS.map(id => [id, ri(-6, 6)])), usedExits: [], hinoUsed: {}, hinoSceneUsed: [], nichiUsed: [], nichiSceneUsed: [], sapixSceneUsed: [], visitCount: 0,
+    talent: Object.fromEntries(CAND_IDS.map(id => [id, ri(-6, 6)])), usedExits: [], hinoUsed: {}, hinoSceneUsed: [], nichiUsed: [], nichiSceneUsed: [], sapixSceneUsed: [], visitCount: 0, liveDone: false, concertDone: false, qboxUsed: [],
     song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false, saisonDone: false, recentScores: [],
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
@@ -1043,13 +1064,13 @@ $("btnStart").onclick = () => {
   renderMain();
   setTimeout(() => showEvent({
     c: "tsukasa",
-    t: `「おれたちは『タイムレッスー』。\nこのオーディションは、おれたちの新しい仲間を探す場だ。\n\n20,000人応募して、残っているのは12人。デビュー枠は5つ。\n\n言っとくけど、おれたちの人生も懸かってる。\n${esc(name)}。……覚悟はあるか」`,
-    ch: [{ t: "「あります」", fx: { st: { me: 3 } }, after: () => showEvent({
+    t: pick(OPENING_FUMA)(esc(name)),
+    ch: [{ t: "「あります……！」", fx: { st: { me: 3 } }, after: () => showEvent({
       c: "riku",
-      t: "「そんなに固くならなくていいよ。\n\nこれはオーディションじゃなくて、仲間探しだから。\n選ぶんじゃない。……出会いに来たんだ、僕たちは」",
+      t: pick(OPENING_SHORI)(),
       ch: [{ t: "「よろしくお願いします」", fx: {}, after: () => showEvent({
         c: "kanade",
-        t: "「僕たちも、君に選ばれる立場だからね。\nお互い、いいところを見せ合おう。\n\n……こわくなったら、僕の顔を見て。\nずっと味方だから」",
+        t: pick(OPENING_SOU)(),
         ch: [{ t: "「はい！」", fx: { cond: 1 }, after: () => renderMain() }]
       }) }]
     }) }]
@@ -1598,13 +1619,16 @@ function startNichinoken(done) {
 
 /* ================= 受験生応援キャンペーン：SAPIX 白金校 ================= */
 const SAPIX_SCENES = [
-  "（SAPIX白金校。教室の空気が、ピリッとしていた）\n\nりょうたろう「あ、学校に来た人たちだ」\nじゅんた「ぼく開成志望。きみたちのオーディションの倍率は？」\nかずや「2万分の5……約4000倍か。開成より高いね」\n\nもとき「……計算はやっ」\nさとゆき「SAPIXだからね」",
-  "（じゅんたが、志望校について語ってくれた）\n\nじゅんた「開成を受ける理由？ 『一番だから』じゃないよ。\n文化祭に行ったら、先輩たちが、こう、自由で。\n\n『ここで6年過ごしたい』って思ったんだ」\n\n（志望理由がしっかりしている。候補生たちは静かに感動した）",
+  "（SAPIX白金校。教室の空気が、ピリッとしていた）\n\nりょうたろう「あ、学校に来た人たちだ」\nりょうたろう「ぼく、開成志望です」\nじゅんた「ぼくは麻布。きみたちのオーディションの倍率は？」\nかずや「2万分の5……約4000倍か。開成より高いね」\n\nもとき「……計算はやっ」\nさとゆき「SAPIXだからね」",
+  "（りょうたろうが、志望校について語ってくれた）\n\nりょうたろう「開成を受ける理由？ 『一番だから』じゃないよ。\n文化祭に行ったら、先輩たちが、こう、自由で。\n\n『ここで6年過ごしたい』って思ったんだ」\n\n（志望理由がしっかりしている。候補生たちは静かに感動した）",
   "（かずやが、ノートを見せてくれた）\n\nかずや「まちがえた問題は、赤で『なぜまちがえたか』を書くんだ。\n『計算ミス』じゃなくて『くり上がりを暗算でやったから』って。\n\n原因を書けば、対策できるでしょ」\n\n（メンバー全員、自分のダンスノートを思い出していた。同じだ、と）",
   "（もときが、休み時間に折り紙を折っていた）\n\nもとき「……緊張したら、手を動かすといいんだ。\n正多面体。……これは正二十面体」\n\nさとゆき「もときは学年で一番、図形につよい」\nもとき「……折ってるからだと思う」\n\n（遊びが力になる。天才の背中を見た気がした）",
   "（さとゆきが、まっすぐ質問してきた）\n\nさとゆき「オーディションと受験、どっちが大変だと思いますか」\n\n……難しい質問だった。考えていると、さとゆきが続けた。\n\n「ぼくは、『比べないで、自分のをやる』が答えだと思ってます」\n\n（小学生に、完敗だった）",
-  "（りょうたろうが、そろばんの腕前を見せてくれた）\n\nりょうたろう「フラッシュ暗算、いくよ。……はい、847×36は30492」\n\n（一同、絶句）\n\nりょうたろう「麻布の算数は、スピードより『考える力』だけどね。\n速さは、考える時間を作るための道具だよ」",
+  "（りょうたろうが、そろばんの腕前を見せてくれた）\n\nりょうたろう「フラッシュ暗算、いくよ。……はい、847×36は30492」\n\n（一同、絶句）\n\nりょうたろう「開成の算数は、スピードより『考える力』だけどね。\n速さは、考える時間を作るための道具だよ」",
   "（自習室を見学した。鉛筆の音だけが響いていた）\n\n誰も、しゃべらない。誰も、スマホを見ない。\n小6の背中が、アスリートに見えた。\n\nじゅんた（小声で）「2月1日まで、あと少しだから」\n\n（帰り道、メンバーは誰も口を開かなかった。……やるしかない、と思った）",
+  "（りょうたろうと2人になったとき、ぽつりと話してくれた）\n\nりょうたろう「うち、親が厳しくてさ。テストのたびに、よく怒られる。\n\n……大変だよ。正直、大変。\nでもね、あれって期待の裏返しでもあるんだ。\nどうでもよかったら、怒らないでしょ。\n\nだから僕は、頑張るよ」\n\n（その横顔は、小学生じゃなくて、戦う人の顔だった）",
+  "（模試の結果が返ってきたらしい。りょうたろうが下を向いていた）\n\nりょうたろう「……成績、悪かった。落ちこんだ。\n\nでもさ、気づいたんだ。\n落ち込んでも、成績は1ミリも良くならないって。\n\nだったら、自分が成長することを信じて、\n1問でも多く問題を解くしかない。……そう思ってる」\n\n（返す言葉が見つからなかった。ただ、全員が自分の練習を思った）",
+  "（りょうたろうが、候補生たちに聞いてきた）\n\nりょうたろう「審査に落ちそうになったこと、ある？\n\n……あるんだ。で、どうやって立て直した？」\n\n（真剣な目だった。答えると、小さくうなずいてメモを取った）\n\nりょうたろう「……参考になった。\n受験もオーディションも、立て直した人が勝つんだね」",
   "（帰り際、かずやが言った）\n\nかずや「きみたちの倍率4000倍とぼくらの倍率3倍、\n数字は違うけど、やることは同じだよね。\n\n『今日の自分が、昨日の自分に勝つ』。それだけ」\n\nさとゆき「……かずや、それ、ぼくが言ったやつ」\nかずや「いいものは共有しよう」",
 ];
 const SAPIX_QS = [
@@ -1688,6 +1712,262 @@ function startSapix(done) {
         }) }]
       }) }]
     }) }]
+  });
+}
+
+/* ================= 企画1：生配信SP ================= */
+const LIVE_COMS = {
+  good: ["え、この子計算はやすぎw","いまのすごくない！？","天才では","うちの子もこうなってほしい","推せる","手元アップ助かる","ノーミスいけるぞ！","集中力えぐい","この子のファンになりました","かっこいい…","娘が推し始めました","スピードが違う","今日も安定してる","応援せずにいられない","がんばれー！！","この配信毎週見たい","切り抜き確定","正解の瞬間の顔が良い"],
+  neutral: ["初見です","タイプロから来ました","この番組おもしろい","何人残ってるんだっけ","BGMいいね","候補生みんな仲良しで好き","シノくん出ないかな","あと何日で審査？","宿題やりながら見てる","おやつ食べながら応援"],
+  bad: ["あー惜しい","おっと","緊張してるかな","手が止まった…","がんばれ！","ドンマイ！"],
+  comeback: ["立て直した！","メンタル強い","切り替えはやい","そこで戻せるのすごい","これがプロ意識か…"],
+};
+function startLive(done) {
+  showEvent({
+    c: "roi",
+    t: "ロイ「おい聞いたか！？ 今夜、おれたちの練習が生配信されるって！\n\n全国のファンが、リアルタイムで見てるんだぜ。\nコメントも流れるらしい。……緊張してきた。\n\nでもさ、これってチャンスだよな。\n画面の向こうの誰かを、ファンにできるチャンス」",
+    ch: [{ t: "🎥 配信、スタート！", fx: {}, after: () => {
+      const L = { viewers: ri(2000, 4000), lastCombo: 0, lastCorrect: 0, trend: false, iv: 0 };
+      const layer = $("liveLayer");
+      layer.classList.remove("hide");
+      $("liveTrend").classList.add("hide");
+      $("liveComs").innerHTML = "";
+      const spawn = (txt, cls) => {
+        const d = document.createElement("div");
+        d.className = "liveCom " + (cls || "");
+        d.textContent = txt;
+        $("liveComs").appendChild(d);
+        setTimeout(() => d.remove(), 3800);
+      };
+      L.iv = setInterval(() => {
+        if (!Q) return;
+        /* 状態を読んでコメントを流す */
+        if (Q.combo > L.lastCombo && Q.combo >= 1) {
+          spawn(pick(LIVE_COMS.good), "g");
+          L.viewers += ri(60, 160) + Q.combo * ri(30, 80);
+        } else if (Q.combo === 0 && L.lastCombo >= 1) {
+          spawn(pick(LIVE_COMS.bad), "b");
+          L.viewers = Math.max(1500, L.viewers - ri(80, 200));
+        } else if (Math.random() < .6) {
+          spawn(pick(L.lastCombo === 0 && Q.correct > 0 ? LIVE_COMS.comeback : LIVE_COMS.neutral));
+          L.viewers += ri(10, 60);
+        }
+        L.lastCombo = Q.combo; L.lastCorrect = Q.correct;
+        $("liveViewers").textContent = `👁 ${L.viewers.toLocaleString()}人が視聴中`;
+        if (!L.trend && (Q.combo >= 5 || L.viewers >= 12000)) {
+          L.trend = true;
+          $("liveTrend").classList.remove("hide");
+          confetti(30);
+        }
+      }, 850);
+      startQuiz({
+        mode: "lesson", genre: "kufuu", lv: Math.max(2, lessonLv() - 1), total: 8,
+        title: "🎥 生配信スペシャル",
+        onEnd: r => {
+          clearInterval(L.iv);
+          layer.classList.add("hide");
+          G.totalQ += r.total; G.totalOK += r.correct;
+          const gain = Math.round(L.viewers * (.35 + r.score / 150) * (L.trend ? 1.5 : 1));
+          G.fans += gain;
+          addStat("ex", 5); addStat("me", 4);
+          confetti(L.trend ? 60 : 30); sfx.clear(); save();
+          $("resPanel").innerHTML = `
+            <div class="resHead">
+              <div class="lbl">🎥 生配信スペシャル</div>
+              <div class="resScore" style="font-size:34px">${r.correct} / 8 問</div>
+              <div class="resRank" style="background:${L.trend ? "#ffcf5c" : "#4ad6b8"};color:#0a0a11">${L.trend ? "🔥 SNSトレンド入り！！" : "配信終了！"}</div>
+            </div>
+            <div class="gains">
+              <div class="gain"><span>👁 最終視聴者数</span><b>${L.viewers.toLocaleString()}人</b></div>
+              <div class="gain"><span>📈 注目度（配信を見た人がファンに）</span><b>+${gain.toLocaleString()}</b></div>
+              <div class="gain"><span>表現力（カメラの前でも動じない）</span><b>+5</b></div>
+              <div class="gain"><span>精神力</span><b>+4</b></div>
+            </div>
+            <button class="btn" id="resOk">▶</button>`;
+          $("ovResult").classList.add("on");
+          $("resOk").onclick = () => {
+            sfx.tap(); $("ovResult").classList.remove("on");
+            showEvent({
+              c: "roi",
+              t: L.trend
+                ? "ロイ「見たかSNS！ おれたち、トレンド入りしてる！！\n\n『#計算はやすぎ候補生』って……なんだこのタグw\n\nでもさ、画面の向こうに、ほんとに人がいたんだな。\n……responsibility、ってやつを感じるぜ。おれたち、もう見られてる側なんだ」"
+                : "ロイ「配信、おつかれ！ コメント欄あったかかったな〜。\n\n画面の向こうに、ほんとに応援してる人がいる。\nそれが分かっただけで、明日からの練習、ちょっと変わる気がするよ」",
+              ch: [{ t: "▶", fx: { cond: 1 }, after: done }]
+            });
+          };
+        }
+      });
+    } }]
+  });
+}
+
+/* ================= 企画2：タイムレッスーのライブにサプライズ出演 ================= */
+function startConcert(done) {
+  showEvent({
+    c: "kanade",
+    t: "ソウ「……今夜、僕たちのライブがあるんだ。\n1万人のアリーナ。\n\nそこでね……候補生の紹介コーナーを作った。\nきみたち、ステージに立ちなさい。\n\n……本物の歓声を、浴びておいで」",
+    ch: [{ t: "🎤 ……1万人の前に！？", fx: {}, after: () => showEvent({
+      c: "tsukasa",
+      t: "（本番30分前。楽屋にフマが来た）\n\nフマ「緊張してるか。……いい。それが正常だ。\n\nひとつだけ教えといてやる。\n1万人ってのはな、『1人×1万』だ。\n一番遠い席の1人に届けるつもりでやれ。\n\nそうすりゃ、全員に届く」",
+      ch: [{ t: "「1人×1万……」", fx: { st: { me: 4 } }, after: () => showEvent({
+        c: "riku",
+        t: "（続いて、ショリが顔を出した）\n\nショリ「衣装、似合ってるよ。\n\n……あのさ、僕が初めてアリーナに立った日、\n足が震えて、袖から出られなかったんだ。\n\nそのとき先輩に背中を押されて出たら……世界が変わった。\n\n今日は、僕がきみの背中を押す番。……いっといで」",
+        ch: [{ t: "「……はい！」", fx: { st: { ex: 4 } }, after: () => showEvent({
+          c: "kanade",
+          t: "（ステージ袖。歓声が地鳴りみたいに響いてる）\n\nソウ「……すごい音でしょ。\n\nこの歓声はね、今日はまだ、僕たちのもの。\nでも、いつか、きみのものになる。\n\n……深呼吸して。\n……いってらっしゃい！」",
+          ch: [{ t: "🔥 ステージへ！！", fx: { st: { vo: 3 } }, after: () => {
+            const genres = ["pi", "frac", "ratio", "gyaku", "kufuu", "bun"];
+            const fixed = Array.from({ length: 10 }, (_, i) => {
+              const g = MATH.gen(genres[i % genres.length], 5);
+              return { ...g, time: Math.round((g.time || 60) * 1.5) };
+            });
+            startQuiz({
+              mode: "lesson", genre: "kufuu", lv: 5, total: 10, fixed,
+              title: "🎤 1万人のアリーナ",
+              onEnd: r => {
+                G.totalQ += r.total; G.totalOK += r.correct;
+                const success = r.correct >= r.total - 2;   /* 2ミスまで成功 */
+                const gain = success ? ri(9000, 12000) : 1500;
+                G.fans += gain;
+                if (success) { addStat("ex", 6); addStat("vo", 4); }
+                addStat("me", success ? 5 : 8);
+                confetti(success ? 80 : 15); if (success) sfx.clear(); save();
+                $("resPanel").innerHTML = `
+                  <div class="resHead">
+                    <div class="lbl">🎤 1万人のアリーナ</div>
+                    <div class="resScore" style="font-size:34px">${r.correct} / 10</div>
+                    <div class="resRank" style="background:${success ? "#ffcf5c" : "#a5a5bd"};color:#0a0a11">${success ? "🌟 大歓声！！" : "……悔しさを知った夜"}</div>
+                  </div>
+                  <div class="gains">
+                    <div class="gain"><span>📈 注目度</span><b>+${gain.toLocaleString()}</b></div>
+                    ${success ? `<div class="gain"><span>表現力（本物のステージ）</span><b>+6</b></div><div class="gain"><span>歌唱力</span><b>+4</b></div><div class="gain"><span>精神力</span><b>+5</b></div>` : `<div class="gain"><span>精神力（悔しさは最強の燃料）</span><b>+8</b></div>`}
+                  </div>
+                  <button class="btn" id="resOk">▶</button>`;
+                $("ovResult").classList.add("on");
+                $("resOk").onclick = () => {
+                  sfx.tap(); $("ovResult").classList.remove("on");
+                  showEvent({
+                    c: success ? "tsukasa" : "kanade",
+                    t: success
+                      ? "（ステージを降りると、客席から名前コールが聞こえた）\n\nフマ「……聞こえるか、あれ。\nおまえの名前だ。もう、おまえのファンだ。\n\n今日の景色、忘れるな。\nあの場所に、自分の力で戻ってこい。\n\n……いいもん見せてもらった。ありがとな」"
+                      : "（ステージ袖で、うつむいていた。ソウ先輩がそっと隣に立った）\n\nソウ「……悔しい？\n\n……よかった。悔しいって思えるなら、大丈夫。\n\n僕もね、初ステージはボロボロだったんだ。\nでもその悔しさが、今日までずっと僕を走らせてる。\n\nきみは今夜、一番大事なものを手に入れたんだよ」",
+                    ch: [{ t: "▶", fx: { cond: 1 }, after: done }]
+                  });
+                };
+              }
+            });
+          } }]
+        }) }]
+      }) }]
+    }) }]
+  });
+}
+
+/* ================= 企画3：バラエティ力審査「ぶっちゃけ質問箱」 ================= */
+const QBOX = [
+  { q: "『いま一番食べたいものは？』", ch: [
+    { t: "「おかんのカレー」", rc: "kanade", r: "ソウ「……いいねえ。その答え、あったかい。\n家族の話ができる人は、応援されるんだよ」", fx: { st: { tk: 3 } } },
+    { t: "「勝利の味！」", rc: "tsukasa", r: "フマ「……うまいこと言ったな。\n一瞬の切り返し、悪くない。バラエティ向きだ」", fx: { st: { tk: 4 } } },
+    { t: "「……高級焼肉」", rc: "riku", r: "ショリ「正直！ 正直はいちばん強い（笑）\nキムラさんの弁当、うまかったもんね」", fx: { st: { tk: 3 }, stam: 5 } } ] },
+  { q: "『なんでアイドルになりたいの？』", ch: [
+    { t: "「誰かの毎日を明るくしたい」", rc: "kanade", r: "ソウ「……うん。その気持ちがあれば、大丈夫。\n僕たちも、同じ気持ちで始めたから」", fx: { st: { me: 4, tk: 2 } } },
+    { t: "「自分を変えたいから」", rc: "tsukasa", r: "フマ「……いい答えだ。\n夢ってのは、他人のためだけじゃなくていい。\n自分のための夢は、強いぞ」", fx: { st: { me: 5 } } } ] },
+  { q: "『ここだけの話、ライバルは誰？』", ch: [
+    { t: "正直に1人の名前を言う", rc: "tsukasa", r: "フマ「名指しできる度胸、買った。\nライバルの名前を言えるやつは、自分の位置が見えてるやつだ」", fx: { st: { tk: 4, me: 2 } } },
+    { t: "「昨日の自分です」", rc: "riku", r: "ショリ「……おお、綺麗にまとめた（笑）\nちょっと優等生すぎるけど、その考え方は本物だね」", fx: { st: { tk: 3 } } } ] },
+  { q: "『自分の弱点をどうぞ』", ch: [
+    { t: "「緊張しやすいこと」", rc: "kanade", r: "ソウ「言えたね。……弱点を言える人は、直せる人。\n隠す人がいちばん伸びないんだ」", fx: { st: { me: 4 } } },
+    { t: "「弱点も伸びしろって呼んでます」", rc: "tsukasa", r: "フマ「……言い方ひとつだな。\nポジティブ変換、テレビで使えるぞ、それ」", fx: { st: { tk: 4 } } } ] },
+  { q: "『無人島に1つ持っていくなら？』", ch: [
+    { t: "「計算ドリル」", rc: "riku", r: "ショリ「ぶれないね！？（笑）\nいや、でもそのキャラの一貫性、大事だよ。覚えてもらえる」", fx: { st: { tk: 4 } } },
+    { t: "「メンバー全員」", rc: "kanade", r: "ソウ「1つって言ったのに（笑）\n……でも、うれしいなあ。その答え」", fx: { st: { tk: 3 }, aff: { shino: 3, shuto: 3 }, silent: true, msg: "みんながちょっと照れた" } } ] },
+  { q: "『朝起きて最初にすることは？』", ch: [
+    { t: "「白湯を飲む」", rc: "riku", r: "ショリ「渋っ！（笑) ……いや、実は僕もなんだよね。\n喉、大事にしてる人の答えだ」", fx: { st: { vo: 3, tk: 2 } } },
+    { t: "「二度寝との戦い」", rc: "tsukasa", r: "フマ「わかる（即答）\n……おい、いま親近感出ただろ。そういうのが大事なんだよ」", fx: { st: { tk: 4 } } } ] },
+  { q: "『10年後、何してると思う？』", ch: [
+    { t: "「ドームツアーの最終日」", rc: "tsukasa", r: "フマ「……でかく出たな。いい。\n口に出した夢は、叶う確率が上がるんだ。おれが証人な」", fx: { st: { me: 5 } } },
+    { t: "「後輩を育ててたい」", rc: "kanade", r: "ソウ「……その視点、20年選手みたいだね（笑）\nもらう側から、あげる側へ。いい流れだ」", fx: { st: { me: 3, tk: 3 } } } ] },
+  { q: "『メンバーの意外な一面、暴露して』", ch: [
+    { t: "「タクトさんの貝愛は本物」", rc: "riku", r: "ショリ「知ってる（笑）この前、水族館の貝コーナーで2時間動かなかったらしいね。\n……いい暴露は、愛がある暴露。いまのは満点」", fx: { st: { tk: 5 } } },
+    { t: "「シノは実は大食い」", rc: "kanade", r: "ソウ「えっ、そうなの！？（笑）\nあの細さで……ギャップって最強のコンテンツだよ」", fx: { st: { tk: 4 } } } ] },
+  { q: "『いま、家族に一言』", ch: [
+    { t: "「心配かけてごめん。でも見てて」", rc: "kanade", r: "ソウ「…………。（ちょっと泣いてる）\n……ごめん、こういうの弱いんだ。……いい言葉だった」", fx: { st: { me: 5 } } },
+    { t: "「仕送りのお米、助かってます」", rc: "tsukasa", r: "フマ「生活感（笑）\n……でもな、そういうリアルが人の心をつかむんだ。おれは好きだぞ」", fx: { st: { tk: 4 } } } ] },
+  { q: "『オーディションで一番つらかった瞬間は？』", ch: [
+    { t: "「仲間が脱落した日」", rc: "kanade", r: "ソウ「……そうだよね。\n自分のことより仲間のことを言えるきみは、もうアイドルだよ」", fx: { st: { me: 5 } } },
+    { t: "「毎日です（食い気味）」", rc: "riku", r: "ショリ「即答（笑）\n……でも毎日つらいのに毎日来てる。それが答えだよね」", fx: { st: { tk: 3, me: 2 } } } ] },
+  { q: "『自分にキャッチコピーをつけるなら？』", ch: [
+    { t: "「計算より速い男はいない」", rc: "tsukasa", r: "フマ「……お、自分の武器わかってるな。\nキャッチコピーは『一番強いとこ』を切り取れ。正解だ」", fx: { st: { tk: 4, me: 2 } } },
+    { t: "「全国の受験生の代表」", rc: "kanade", r: "ソウ「……いいね。背負うものがある人は強い。\n受験生のみんな、聞いてた？ この子が代表だって」", fx: { fans: 800, st: { me: 3 } } } ] },
+  { q: "『最後に、画面の前のファンに一言』", ch: [
+    { t: "「必ずデビューして会いに行きます」", rc: "tsukasa", r: "フマ「……言ったな？ 言葉にした以上、逃げられないぞ。\n……いい顔だ。その約束、審査員として見届ける」", fx: { st: { me: 5 }, fans: 500 } },
+    { t: "「一緒に春を迎えましょう」", rc: "kanade", r: "ソウ「……受験生への言葉だ。やさしいね。\nきみのファンは、きっとあったかい人が集まるよ」", fx: { fans: 800, st: { tk: 3 } } } ] },
+];
+const QUICK_QS = [
+  { q: "3.14×8 は？", a: { t: "num", v: 25.12 }, tag: "とっさの暗算" },
+  { q: "25×16 は？", a: { t: "num", v: 400 }, tag: "とっさの暗算", note: "25×4×4" },
+  { q: "99×7 は？", a: { t: "num", v: 693 }, tag: "とっさの暗算", note: "700－7" },
+  { q: "12.5×8 は？", a: { t: "num", v: 100 }, tag: "とっさの暗算" },
+  { q: "15×15 は？", a: { t: "num", v: 225 }, tag: "とっさの暗算" },
+  { q: "1000－374 は？", a: { t: "num", v: 626 }, tag: "とっさの暗算" },
+  { q: "36×25 は？", a: { t: "num", v: 900 }, tag: "とっさの暗算", note: "36÷4×100" },
+];
+function startQBox(done) {
+  G.qboxLast = G.day;
+  G.qboxUsed = G.qboxUsed || [];
+  let avail = QBOX.map((_, i) => i).filter(i => !G.qboxUsed.includes(i));
+  if (avail.length < 3) { G.qboxUsed = []; avail = QBOX.map((_, i) => i); }
+  const cards = [...avail].sort(() => Math.random() - .5).slice(0, 3);
+  cards.forEach(i => G.qboxUsed.push(i));
+  let tkGain = 0;
+  const askCard = (k, after) => {
+    const card = QBOX[cards[k]];
+    showEvent({
+      c: "tsukasa",
+      t: `（フマが質問箱からカードを引いた）\n\nフマ「質問${k + 1}。……${card.q}\n\n30秒でどうぞ。……カメラ回ってるからな」`,
+      ch: card.ch.map(c => ({ t: c.t, fx: {}, after: () => {
+        if (c.fx && c.fx.st && c.fx.st.tk) tkGain += c.fx.st.tk;
+        showEvent({ c: c.rc, t: c.r, ch: [{ t: "▶", fx: c.fx, after }] });
+      } }))
+    });
+  };
+  showEvent({
+    c: "tsukasa",
+    t: "フマ「今日はレッスンじゃない。……バラエティ力審査だ。\n\n歌って踊れるだけのやつは、生き残れない。\nテレビで、ラジオで、しゃべって場を回せるか。\n\n名付けて『ぶっちゃけ質問箱』。\n本音で答えろ。つまんない優等生の答えが、いちばん減点だ」",
+    ch: [{ t: "😅 お手やわらかに……", fx: {}, after: () => askCard(0, () => askCard(1, () => {
+      /* とっさの暗算タイム */
+      const qq = pick(QUICK_QS);
+      showEvent({
+        c: "riku",
+        t: `ショリ「はい、ここで恒例の無茶振りコーナー！\n\n${G.name}くん、とつぜんですが──\n\n**${qq.q}**\n\n……計算キャラなんでしょ？ 見せて見せて（笑）」`,
+        ch: [{ t: "🔥 受けて立つ！", fx: {}, after: () => startQuiz({
+          mode: "lesson", genre: "kufuu", lv: 2, total: 1,
+          fixed: [{ ...qq, small: true, time: 25, genre: "kufuu" }],
+          title: "⚡ とっさの暗算",
+          onEnd: r => {
+            G.totalQ += r.total; G.totalOK += r.correct;
+            const okQ = r.correct === 1;
+            if (okQ) G.fans += 600;
+            save();
+            $("ovResult").classList.remove("on");
+            showEvent({
+              c: okQ ? "riku" : "tsukasa",
+              t: okQ
+                ? "ショリ「即答！！ 会場どよめいたよ（笑）\nこういう『持ちネタ』があるって強いなあ。\n……番組で使えるよ、それ」"
+                : "フマ「……おい、計算キャラが外すな（笑）\nでもな、外したあとの顔が良かった。\nミスって笑いに変えるのも、バラエティの実力だ」",
+              ch: [{ t: "▶", fx: okQ ? { fans: 0 } : { st: { tk: 2 } }, after: () => askCard(2, () => {
+                addStat("tk", 6);
+                showEvent({
+                  c: "tsukasa",
+                  t: `フマ「……以上、ぶっちゃけ質問箱でした。\n\n${G.name}。おまえ、しゃべれるようになってきたな。\n歌もダンスも大事だ。でもな、\n『この子と話したい』って思わせたやつが、最後に残る。\n\n……今日のおまえは、残る側の顔してたぞ」`,
+                  ch: [{ t: "「ありがとうございました！」", fx: { st: { tk: 3 }, fans: 400 }, after: done }]
+                });
+              }) }]
+            });
+          }
+        }) }]
+      });
+    })) }]
   });
 }
 
@@ -1988,6 +2268,10 @@ const FANMILE_EV = {
 };
 function endDay() {
   G.milesSeen = G.milesSeen || []; G.fanMilesSeen = G.fanMilesSeen || [];
+  if (G.day === 22 && !G.concertDone) {
+    G.concertDone = true; save();
+    return startConcert(() => afterDay());
+  }
   const fmile = FANMILES.find(m => G.fans >= m && !G.fanMilesSeen.includes(m));
   if (fmile) {
     G.fanMilesSeen.push(fmile); save();
@@ -2008,6 +2292,14 @@ function endDay() {
   if (!G.saisonDone && G.day >= 10 && Math.random() < .4) {
     G.saisonDone = true; save();
     return startSaison(() => afterDay());
+  }
+  if (!G.liveDone && G.day >= 13 && G.day < TOTAL_D - 1 && Math.random() < .35) {
+    G.liveDone = true; save();
+    return startLive(() => afterDay());
+  }
+  if (G.day >= 8 && G.day < TOTAL_D - 1 && (G.qboxLast === undefined || G.day - G.qboxLast >= 6) && Math.random() < .3) {
+    save();
+    return startQBox(() => afterDay());
   }
   {
     const lastVisit = Math.max(G.hinoLast ?? -99, G.nichiLast ?? -99, G.sapixLast ?? -99);
