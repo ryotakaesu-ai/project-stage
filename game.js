@@ -827,6 +827,44 @@ const EVENTS = [
   { id: "y05", c: "yuma", t: "（ユウマとシオンが、無言で並んで踊っていた）\n\n2人とも、しゃべらない。\nでも、動きだけがどんどんシンクロしていく。\n\nユウマ「……こいつ、すごい」\nシオン「……そっちこそ」\n\n（それが2人の、最初の会話だった）", ch: [
     { t: "2人の間に入って踊る", fx: { st: { da: 5 }, stam: -10, aff: { yuma: 9, shion: 9 } } },
     { t: "邪魔せず目に焼き付ける", fx: { st: { ex: 4, me: 3 } } } ] },
+
+  /* ===== シノ×きみの絆イベント（保証枠用・追加12本） ===== */
+  { id: "s01", c: "shino", t: "（シノが分厚いノートを見せてくれた）\n\nシノ「……これ、ぼくの分析ノート。\n審査員の好み、課題曲のクセ、メンバー全員の得意と苦手。\n\n……{name}のページが、いちばん書き込み多いよ。\n……いちばん、伸びてるから」", ch: [
+    { t: "「ノートの写し、ください」", fx: { st: { me: 4, tk: 3 }, aff: { shino: 12 } } },
+    { t: "「シノの分析力、すごい」", fx: { st: { me: 3 }, aff: { shino: 10 } } } ] },
+  { id: "s02", c: "shino", t: "（消灯後、ふたりで抜け出してコンビニへ）\n\nシノ「……肉まん、半分こしよう。\n\n……こういうの、初めてなんだ。\n夜に友だちと、コンビニ。\n\n……受験のとき、ずっとひとりだったから。\n……いま、ちょっと楽しい」", ch: [
+    { t: "「毎週恒例にしよう」", fx: { stam: 15, aff: { shino: 14 } } },
+    { t: "「半分こって、うまいよな」", fx: { stam: 12, aff: { shino: 11 }, cond: 1 } } ] },
+  { id: "s03", c: "shino", t: "シノ「……{name}にだけ、言う。\n\nぼく、ほんとは……この中で一番、自信がないんだ。\n分析するのも、数字を数えるのも、\nこわいからだよ。準備してないと、立ってられないから。\n\n……変かな」", ch: [
+    { t: "「その準備が、シノの強さだ」", fx: { st: { me: 5 }, aff: { shino: 15 } } },
+    { t: "「おれも一緒だよ」", fx: { st: { me: 4 }, aff: { shino: 13 } } } ] },
+  { id: "s04", c: "shino", t: "シノ「……勝負しよう。計算バトル。\nストップウォッチ、用意した。\n\n負けたほうが、ジュースおごりね。\n\n……言っとくけど、ぼく、負けるの嫌いだよ。\n……きみに負けるのは、もっと嫌い」", ch: [
+    { t: "🔥 受けて立つ！", fx: { st: { me: 4 }, aff: { shino: 12 }, stam: -6 } },
+    { t: "「おごられる準備しとくよ」", fx: { st: { tk: 3 }, aff: { shino: 10 } } } ] },
+  { id: "s05", c: "shino", t: "シノ「……受験の話、聞きたい？\n\n小6の秋、E判定だった。塾で泣いた。\nでも先生が言ったんだ。『判定は天気予報。傘を用意すれば濡れない』って。\n\nそこから毎日、まちがい直しだけやった。\n2月1日、桜が咲いた。\n\n……だからぼくは、途中の数字を信じてない。最後の自分だけ信じてる」", ch: [
+    { t: "「その話、もっと聞きたい」", fx: { st: { me: 6 }, aff: { shino: 13 } } },
+    { t: "「最後の自分だけ信じる……」", fx: { st: { me: 5 }, cond: 1, aff: { shino: 11 } } } ] },
+  { id: "s06", c: "shino", t: "シノ「{name}のいいところ、言語化していい？\n\n①立ち直りが早い。ミスのあとの1問目の顔がいい。\n②人の話を最後まで聞く。\n③……あきらめ方を知らない。\n\n……以上。ぼくの分析に、まちがいはないよ」", ch: [
+    { t: "「……全部うれしい」", fx: { st: { me: 6 }, aff: { shino: 14 } } },
+    { t: "「シノのいいところも言う」", fx: { st: { tk: 4 }, aff: { shino: 15 } } } ] },
+  { id: "s07", c: "shino", t: "（シノがイヤホンを片方差し出した）\n\nシノ「……課題曲、一緒に分析しよう。\n\nここ、2番のサビ前。0.5秒の休符がある。\nこの沈黙が、いちばん大事なんだ。\n\n……音楽も計算も、『間』でできてる。\n……きみとなら、この話ができると思った」", ch: [
+    { t: "「その0.5秒、聞かせて」", fx: { st: { vo: 4, ex: 3 }, aff: { shino: 12 } } },
+    { t: "「間、意識してみる」", fx: { st: { ex: 4 }, aff: { shino: 10 } } } ] },
+  { id: "s08", c: "shino", t: "（熱っぽくてふらついていたら、シノが気づいた）\n\nシノ「……顔、赤い。座って。\n\n（水と、冷えたタオルと、塩あめを持ってきてくれた）\n\n……看病、慣れてるんだ。受験のとき、自分でやってたから。\n……今日はもう、寝ること。……命令だよ」", ch: [
+    { t: "「……ありがとう」", fx: { stam: 30, aff: { shino: 14 } } },
+    { t: "「シノって、母さんみたいだな」", fx: { stam: 25, aff: { shino: 12 }, cond: 1 } } ] },
+  { id: "s09", c: "shino", t: "（屋上で、シノが夜空を見上げていた）\n\nシノ「……星、数えたくなるんだよね。\n\n……あのね。星の光って、何年も前に出発した光なんだ。\nいま見てる輝きは、ずっと前の努力。\n\n……ぼくたちの練習も、同じだよ。\n今日の1問は、何ヶ月かあとのステージで光る」", ch: [
+    { t: "「……今夜の練習、光るかな」", fx: { st: { me: 5 }, aff: { shino: 12 } } },
+    { t: "しばらく一緒に星を数えた", fx: { cond: 1, stam: 10, aff: { shino: 13 } } } ] },
+  { id: "s10", c: "shino", t: "シノ「……はい、これ。\n\n（おそろいのリストバンドだった）\n\n2個セットだったから。深い意味はないよ。\n……いや、あるかも。\n\n本番で緊張したら、これ見て。\n『ひとりじゃない』って、思い出せるでしょ」", ch: [
+    { t: "「一生つける」", fx: { st: { me: 6 }, aff: { shino: 16 } } },
+    { t: "「……泣かせにきてる？」", fx: { st: { me: 4 }, aff: { shino: 13 }, cond: 1 } } ] },
+  { id: "s11", c: "shino", t: "シノ「……気づいたことがある。\n\nぼく、ここに来てから、笑うようになった。\n受験のときは、笑ったら負けだと思ってた。\n\nでも違った。笑うと、強くなるんだ。\n\n……きみのせいだよ、{name}。\n……ありがとう、って言ってる。いま」", ch: [
+    { t: "「おれも、シノのおかげで笑えてる」", fx: { st: { me: 5 }, aff: { shino: 16 } } },
+    { t: "無言でグータッチ", fx: { st: { me: 4 }, aff: { shino: 14 } } } ] },
+  { id: "s12", c: "shino", t: "シノ「約束、しない？\n\nデビューしても、しなくても、\n1年後の今日、またふたりで計算バトルする。\n\n……人生って、長いんだ。\nオーディションの結果より、続く約束のほうが、ずっと大事。\n\n……受験で学んだこと、それが一番かもしれない」", ch: [
+    { t: "「約束。ぜったい」", fx: { st: { me: 6 }, aff: { shino: 15 } } },
+    { t: "「次は負けないからな」", fx: { st: { me: 5 }, aff: { shino: 13 } } } ] },
   { id: "e26", c: "kanade", t: "「みんなには内緒だけど……次の審査、\n合格ラインぎりぎりの子から順に発表する演出らしい。\n……心の準備、しておいてね」", ch: [
     { t: "「教えてくれてありがとうございます」", fx: { st: { me: 5 } } },
     { t: "「ドキドキさせないでください！」", fx: { st: { tk: 3 }, cond: 1 } } ] },
@@ -2440,6 +2478,19 @@ function endDay() {
     const evc = CANDS[ev.c] && !G.alive.includes(ev.c) ? "kanade" : ev.c;
     return showEvent({ c: evc, t: `🏅 通算${mile}問 とっぱ！\n\n${ev.t}`, ch: [{ t: "▶", fx: { st: { me: 3 }, cond: 1 }, after: () => endDay() }] });
   }
+  /* シノ保証枠：4日以上あいたら必ずシノイベント（脱落後はLINEで続く） */
+  if (G.day - (G.shinoLast || 0) >= 4 && G.day < TOTAL_D) {
+    const sPool = EVENTS.filter(e => e.c === "shino" && !G.evseen.includes(e.id));
+    if (sPool.length) {
+      const e = pick(sPool);
+      G.evseen.push(e.id);
+      if (!DB.meta.evseen.includes(e.id)) DB.meta.evseen.push(e.id);
+      G.shinoLast = G.day; save();
+      const gone = !G.alive.includes("shino");
+      const t = gone ? "（脱落したシノから、LINEが届いた）\n\n" + e.t : e.t;
+      return showEvent({ c: e.c, t, ch: e.ch.map(c => ({ t: c.t, fx: c.fx, after: () => afterDay() })) });
+    }
+  }
   if (!G.sushiDone && G.alive.includes("takuto") && G.day >= 5 && Math.random() < .4) {
     G.sushiDone = true; save();
     return startSushi(() => afterDay());
@@ -2493,6 +2544,7 @@ function endDay() {
       const e = pick(weighted);
       G.evseen.push(e.id);
       if (!DB.meta.evseen.includes(e.id)) DB.meta.evseen.push(e.id);
+      if (e.c === "shino") G.shinoLast = G.day;
       return showEvent({ c: e.c, t: e.t, ch: e.ch.map(c => ({ t: c.t, fx: c.fx, after: () => afterDay() })) });
     }
   }
@@ -2932,9 +2984,9 @@ function finishAudition(a, idx, r) {
 /* ================= 合格者発表 ================= */
 function announce(a, idx, board, pass, tier) {
   const isFinal = idx === 4;
-  /* 脱落者＝その審査で下位に沈んだライバル（毎回変わる） */
+  /* 脱落者＝その審査で下位に沈んだライバル（毎回変わる）。シノは序盤（1次・2次）は脱落しない */
   const drops = isFinal ? [] :
-    [...board].filter(b => !b.me).sort((x, y) => x.s - y.s).slice(0, a.dropN || 0).map(b => b.id);
+    [...board].filter(b => !b.me && !(b.id === "shino" && idx < 2)).sort((x, y) => x.s - y.s).slice(0, a.dropN || 0).map(b => b.id);
   show("scrAnn");
   $("annTitle").textContent = isFinal ? "最 終 結 果 発 表" : "合 格 者 発 表";
   $("annSub").innerHTML = "";
