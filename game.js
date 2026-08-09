@@ -45,10 +45,12 @@ const CANDS = {
   masaki:{ n: "マサキ", full: "将希 / 18", img: "img/masaki.jpg", c: "#8fd0ff", role: "圧倒的ビジュアルと低音ボイス" },
   shuto: { n: "シュウト", full: "周斗 / 16", img: "img/shuto.jpg", c: "#ffb35c", role: "愛され天然・未経験からの覚醒枠" },
   shino: { n: "シノ",   full: "紫乃 / 16", img: "img/shino.jpg", c: "#c9b8ff", role: "頭脳派×泥くさい努力の天才" },
+  daigo: { n: "ダイゴ", full: "大吾 / 23", img: "img/daigo.jpg", c: "#ff8c42", role: "関西弁の熱血兄貴・笑いと涙の男" },
+  yuma:  { n: "ユウマ", full: "雄真 / 20", img: "img/yuma.jpg",  c: "#4adede", role: "バトル仕込みのキレキレダンサー" },
 };
-const CAND_IDS = ["shino", "takuto", "hara", "shuto", "masaki", "roi", "noa", "shion", "ren", "haru", "kai", "sora"];
+const CAND_IDS = ["shino", "takuto", "hara", "shuto", "masaki", "roi", "noa", "daigo", "yuma", "shion", "ren", "haru", "kai", "sora"];
 /* メインキャスト（イベント抽選で優遇） */
-const MAIN_CAST = new Set(["shino", "takuto", "hara", "shuto", "masaki", "roi", "noa", "tsukasa", "kanade", "riku", "nosuke", "kimura"]);
+const MAIN_CAST = new Set(["shino", "takuto", "hara", "shuto", "masaki", "roi", "noa", "daigo", "yuma", "tsukasa", "kanade", "riku", "nosuke", "kimura"]);
 
 /* 審査員（先輩グループ） */
 /* 合格者が加入するグループ「タイムレッスー」の現役メンバー3人が審査する */
@@ -87,11 +89,11 @@ const CMDS = [
 ];
 
 const AUDS = [
-  { d: 6,  n: "1次審査",   sub: "自己PR と 歌唱",       q: 10, lv: 2, need: 42, drop: "noa",  base: { shion: 56, ren: 58, haru: 48, kai: 52, sora: 44, takuto: 54, hara: 50, noa: 43, roi: 47, masaki: 52, shuto: 49, shino: 55 } },
-  { d: 12, n: "2次審査",   sub: "課題曲『RUN』ダンス審査", q: 12, lv: 3, need: 52, drop: ["kai", "roi"], base: { shion: 65, ren: 67, haru: 56, kai: 58, sora: 52, takuto: 63, hara: 58, roi: 54, masaki: 60, shuto: 57, shino: 64 } },
-  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 60, drop: ["sora", "masaki"], base: { shion: 73, ren: 75, haru: 64, sora: 58, takuto: 70, hara: 71, masaki: 66, shuto: 65, shino: 72 } },
-  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 4, need: 68, drop: ["haru"], base: { shion: 81, ren: 82, haru: 71, takuto: 78, shuto: 72, shino: 80, hara: 76 } },
-  { d: 30, n: "ファイナル審査", sub: "課題曲『STAGE』最終ステージ", q: 15, lv: 5, need: 76, drop: "final", base: { shion: 86, ren: 88, shino: 85, takuto: 83, hara: 82, shuto: 78 } },
+  { d: 6,  n: "1次審査",   sub: "自己PR と 歌唱",       q: 10, lv: 2, need: 42, dropN: 2, base: { shion: 56, ren: 58, haru: 48, kai: 52, sora: 44, takuto: 54, hara: 50, noa: 43, roi: 47, masaki: 52, shuto: 49, shino: 55, daigo: 53, yuma: 51 } },
+  { d: 12, n: "2次審査",   sub: "課題曲『RUN』ダンス審査", q: 12, lv: 3, need: 52, dropN: 2, base: { shion: 65, ren: 67, haru: 56, kai: 58, sora: 52, takuto: 63, hara: 58, roi: 54, masaki: 60, shuto: 57, shino: 64, noa: 53, daigo: 61, yuma: 62 } },
+  { d: 18, n: "3次審査",   sub: "合宿・チーム課題曲",   q: 12, lv: 4, need: 60, dropN: 2, base: { shion: 73, ren: 75, haru: 64, sora: 58, takuto: 70, hara: 71, masaki: 66, shuto: 65, shino: 72, kai: 63, roi: 62, noa: 61, daigo: 69, yuma: 68 } },
+  { d: 24, n: "4次審査",   sub: "個人パフォーマンス",   q: 13, lv: 5, need: 68, dropN: 2, base: { shion: 81, ren: 82, haru: 71, takuto: 78, shuto: 72, shino: 80, hara: 76, daigo: 77, yuma: 75, kai: 70, sora: 66, roi: 69, noa: 68, masaki: 73 } },
+  { d: 30, n: "ファイナル審査", sub: "課題曲『STAGE』最終ステージ", q: 15, lv: 5, need: 76, dropN: 0, base: { shion: 86, ren: 88, shino: 85, takuto: 83, hara: 82, shuto: 78, daigo: 84, yuma: 81, haru: 76, kai: 75, sora: 72, roi: 77, noa: 76, masaki: 79 } },
 ];
 const TOTAL_D = 30;
 const CAMP = [13, 18];   /* 合宿期間 */
@@ -766,6 +768,45 @@ const EVENTS = [
   { id: "m15", c: "shuto", t: "シュウト「脱落したノアからLINE来た！\n\n『Practice makes perfect. がんばれよ』って。\n……なんかカッコよくない！？\n\nおれ、返信に3時間かかった」", ch: [
     { t: "「3時間かけた返信、いいね」", fx: { aff: { shuto: 11 }, st: { me: 4 } } },
     { t: "自分もメッセージを送る", fx: { st: { me: 5, tk: 3 }, aff: { shuto: 9 } } } ] },
+
+  /* ===== ダイゴ（関西弁の熱血兄貴） ===== */
+  { id: "d01", c: "daigo", t: "ダイゴ「よっしゃ、自己紹介いくで！\nおれ、23歳！ この中やと年長組や！\n\n……年齢のこと、正直めっちゃ気にしとった。\nでもな、決めたんや。\n『遅く始めたぶん、誰よりもデカい声で歌ったる』って。\n\n{name}も、ちっさくまとまんなや！」", ch: [
+    { t: "「デカい声、まねします」", fx: { st: { vo: 5, me: 4 }, aff: { daigo: 10 } } },
+    { t: "「23歳、全然いけますよ」", fx: { aff: { daigo: 13 }, st: { tk: 3 } } } ] },
+  { id: "d02", c: "daigo", t: "（ダイゴが1人、非常階段で歌詞カードを握りしめていた）\n\nダイゴ「……お、{name}か。\nかっこ悪いとこ見られてもうたな。\n\n実はな、おれ、家族に『あと1年だけ』って約束してここに来とるんや。\nそやから……崖っぷちなんは、みんな一緒やけどな、\nおれの崖は、ちょい高いんや」", ch: [
+    { t: "「一緒に受かりましょう」", fx: { aff: { daigo: 14 }, st: { me: 5 } } },
+    { t: "黙って隣で歌詞を読む", fx: { aff: { daigo: 11 }, st: { vo: 4 } } } ] },
+  { id: "d03", c: "daigo", t: "ダイゴ「なあ、しりとりせえへん？\n\n……なんでって、緊張ほぐすんや。本番前はな、\n笑っとるやつが勝つんやで。\n\nほな行くで。『リンゴ』！」\n\nハラ「ゴリラ！」　シュウト「ラッパ！」\nダイゴ「パイナポー！ ……あ」\n\n（一同大爆笑）", ch: [
+    { t: "「わざとでしょ！」とツッコむ", fx: { st: { tk: 5 }, aff: { daigo: 11, hara: 5, shuto: 5 }, silent: true, msg: "笑いで空気がほぐれた" } },
+    { t: "笑いすぎて涙が出た", fx: { stam: 15, cond: 1, aff: { daigo: 9 } } } ] },
+  { id: "d04", c: "daigo", t: "（審査で厳しい評価を受けた夜）\n\nダイゴ「……なあ{name}。おれ、ヘタクソやろか。\n\n……いや、答えんでええ。ヘタクソなんは知っとる。\n聞きたいんは、そこやない。\n\n『伸びとるか』や。昨日のおれより、今日のおれは前におるか。\n……それだけ見て、進むしかないやろ」", ch: [
+    { t: "「昨日より、確実に前です」", fx: { aff: { daigo: 13 }, st: { me: 6 } } },
+    { t: "「おれも同じ気持ちです」", fx: { aff: { daigo: 10 }, st: { me: 5 } } } ] },
+  { id: "d05", c: "daigo", t: "ダイゴ「たこ焼き、焼いたで〜！\n\n宿舎のホットプレート借りてな。\nおれの地元の味や。ソース多め、かつお節は雪や思て降らせ。\n\n……食え食え！ 悩んどるやつは、だいたい腹が減っとるんや」", ch: [
+    { t: "アツアツを頬張る", fx: { stam: 30, cond: 1, aff: { daigo: 10 } } },
+    { t: "「作り方教えてください」", fx: { stam: 20, st: { tk: 4 }, aff: { daigo: 12 } } } ] },
+
+  /* ===== ユウマ（バトル仕込みのダンサー) ===== */
+  { id: "y01", c: "yuma", t: "（ユウマのダンスを初めて間近で見た。空気が変わる）\n\nユウマ「……おれ、しゃべるの苦手。\nだから、全部ダンスで言う。\n\nうれしいも、くやしいも、ぜんぶ動きに出す。\n……そのほうが、うそがないだろ」", ch: [
+    { t: "「今の動き、教えてください」", fx: { st: { da: 6 }, aff: { yuma: 11 }, stam: -8 } },
+    { t: "「言葉より伝わりました」", fx: { st: { ex: 4 }, aff: { yuma: 13 } } } ] },
+  { id: "y02", c: "yuma", t: "ユウマ「バトルの世界だと、相手をにらむんだ。\n……でも先生に言われた。\n『アイドルは、にらむんじゃなくて、迎え入れるんだ』って。\n\n……むずかしい。おれ、ずっと戦ってきたから。\n笑いながら踊るのって、どうやるんだ？」", ch: [
+    { t: "「一緒に鏡の前で笑う練習」", fx: { st: { ex: 5 }, aff: { yuma: 12 } } },
+    { t: "「戦う顔も武器だと思う」", fx: { st: { me: 4 }, aff: { yuma: 10 } } } ] },
+  { id: "y03", c: "yuma", t: "（深夜、ユウマがヘッドホンで1人踊っていた）\n\nユウマ「……音、消して踊ってた。\nカウントが体に入ってれば、音がなくても踊れる。\n\n……{name}もやってみるか？\n頭の中で数える。1、2、3、4……\n\n数字って、裏切らないんだよな」", ch: [
+    { t: "無音ダンスに挑戦する", fx: { st: { da: 6, me: 3 }, stam: -10, aff: { yuma: 11 } } },
+    { t: "「数字は裏切らない、同感」", fx: { st: { me: 5 }, aff: { yuma: 12 } } } ] },
+  { id: "y04", c: "yuma", t: "ユウマ「……ダンスバトルの賞金で暮らしてた時期がある。\n勝てば飯が食える。負けたら食えない。\n\nそういう勝負は、もういい。\nここで欲しいのは、賞金じゃなくて……仲間っていうのかな。\n\n……なんだよ、笑うなよ。慣れないこと言ってんだから」", ch: [
+    { t: "「もう仲間ですよ」", fx: { aff: { yuma: 15 }, st: { me: 4 } } },
+    { t: "「その分もステージで出そう」", fx: { st: { da: 4, ex: 3 }, aff: { yuma: 11 } } } ] },
+
+  /* ===== 新キャラ×既存キャラの絡み ===== */
+  { id: "d06", c: "daigo", t: "（ダイゴとハラが、腕相撲で勝負していた）\n\nダイゴ「筋肉なら負けへんで！」\nハラ「ちゃぼす！ 受けて立つ！」\n\n……勝負は10分続き、引き分け。\n2人とも、腕をプルプルさせながら握手した。\n\nダイゴ「おまえ、ええやつやな」\nハラ「おまえもな」", ch: [
+    { t: "「仲良すぎでしょ」", fx: { aff: { daigo: 8, hara: 8 }, st: { tk: 3 } } },
+    { t: "次はおれと勝負、と挑む", fx: { st: { me: 4 }, stam: -8, aff: { daigo: 10, hara: 6 } } } ] },
+  { id: "y05", c: "yuma", t: "（ユウマとシオンが、無言で並んで踊っていた）\n\n2人とも、しゃべらない。\nでも、動きだけがどんどんシンクロしていく。\n\nユウマ「……こいつ、すごい」\nシオン「……そっちこそ」\n\n（それが2人の、最初の会話だった）", ch: [
+    { t: "2人の間に入って踊る", fx: { st: { da: 5 }, stam: -10, aff: { yuma: 9, shion: 9 } } },
+    { t: "邪魔せず目に焼き付ける", fx: { st: { ex: 4, me: 3 } } } ] },
   { id: "e26", c: "kanade", t: "「みんなには内緒だけど……次の審査、\n合格ラインぎりぎりの子から順に発表する演出らしい。\n……心の準備、しておいてね」", ch: [
     { t: "「教えてくれてありがとうございます」", fx: { st: { me: 5 } } },
     { t: "「ドキドキさせないでください！」", fx: { st: { tk: 3 }, cond: 1 } } ] },
@@ -923,6 +964,7 @@ $("btnCont").onclick = () => {
     G.alive.push("shino");
   }
   G.sushiDone = G.sushiDone || false; G.saisonDone = G.saisonDone || false; G.recentScores = G.recentScores || [];
+  G.talent = G.talent || {}; G.usedExits = G.usedExits || [];
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -991,6 +1033,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
+    talent: Object.fromEntries(CAND_IDS.map(id => [id, ri(-6, 6)])), usedExits: [],
     song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false, saisonDone: false, recentScores: [],
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
@@ -1637,6 +1680,17 @@ function eveEvent(a) {
       kai:  "カイ「おれの分まで、なんて言わない。おまえは、おまえの理由で立て」",
       sora: "ソラ「ぼくの推しは、{name}くんです。ずっとです」",
       haru: "ハル「あの舞台、おまえに似合うよ。……見に行くからな、最前列」",
+      shion: "シオン「……言葉は苦手だから、ひとことだけ。……勝て」",
+      ren:  "レン「おまえに負けたことだけが、いまだに悔しい。だから勝ち続けろ」",
+      takuto: "タクト「約束の回転ずし、忘れてないよな。おれのおごりだ。……行ってこい」",
+      hara: "ハラ「ちゃぼす！！ おれのトス、ちゃんと決めてこいよ！！」",
+      noa:  "ノア「Slow and steady. ……でも今夜だけは、全速力でいけ」",
+      roi:  "ロイ「本番の衣装、袖のボタン留めとけよ。細部だぞ、細部。……頼んだ」",
+      masaki: "マサキ「君の努力は僕が保証する。だから最後まで、胸を張って」",
+      shuto: "シュウト「でっかい笑顔！ 約束だからな！！」",
+      shino: "シノ「……積み上げた数は、裏切らない。……きみがいちばん積んだ」",
+      daigo: "ダイゴ「兄ちゃんの分まで頼んだで！ 声、いちばんデカく出せや！！」",
+      yuma: "ユウマ「カウントは体に入ってる。あとは楽しむだけだ。……いけ」",
     };
     const dropped = CAND_IDS.filter(id => !G.alive.includes(id));
     const lt = dropped.map(id => letters[id]).filter(Boolean).join("\n");
@@ -1966,9 +2020,10 @@ function finishAudition(a, idx, r) {
   const tier = finalTotal >= top ? 2 : finalTotal >= a.need ? 1 : finalTotal >= hope ? 0 : -1;
   const pass = tier >= 0;
 
-  /* ライバルのスコア */
-  const rivals = Object.keys(a.base).filter(id => G.alive.includes(id))
-    .map(id => ({ id, n: CANDS[id].n, img: CANDS[id].img, s: a.base[id] + ri(-4, 4) }));
+  /* ライバルのスコア（周回ごとの才能ロール＋ゆらぎで毎回順位が変わる） */
+  const rivals = G.alive
+    .map(id => ({ id, n: CANDS[id].n, img: CANDS[id].img,
+      s: (a.base[id] ?? a.need - 2) + ((G.talent && G.talent[id]) || 0) + ri(-6, 6) }));
   const board = [...rivals, { id: "me", n: G.name, img: AVATARS[G.av].img, s: finalTotal, me: true }]
     .sort((x, y) => y.s - x.s);
   const myRank = board.findIndex(b => b.me) + 1;
@@ -2017,7 +2072,9 @@ function finishAudition(a, idx, r) {
 /* ================= 合格者発表 ================= */
 function announce(a, idx, board, pass, tier) {
   const isFinal = idx === 4;
-  const drops = !a.drop || a.drop === "final" ? [] : (Array.isArray(a.drop) ? a.drop : [a.drop]);
+  /* 脱落者＝その審査で下位に沈んだライバル（毎回変わる） */
+  const drops = isFinal ? [] :
+    [...board].filter(b => !b.me).sort((x, y) => x.s - y.s).slice(0, a.dropN || 0).map(b => b.id);
   show("scrAnn");
   $("annTitle").textContent = isFinal ? "最 終 結 果 発 表" : "合 格 者 発 表";
   $("annSub").innerHTML = "";
@@ -2100,7 +2157,12 @@ function announce(a, idx, board, pass, tier) {
             if (k >= drops.length) return afterDay();
             const d = drops[k];
             G.alive = G.alive.filter(x => x !== d);
-            showEvent({ c: d, t: dropLine(d), ch: [{ t: "▶", fx: dropFx(d), after: () => doDrop(k + 1) }] });
+            /* 脱落ドラマをランダム抽選（1周内で同じ展開は出ない） */
+            const cand = EXIT_STORIES.filter(x => !(G.usedExits || []).includes(x.id));
+            const story = pick(cand.length ? cand : EXIT_STORIES);
+            G.usedExits = (G.usedExits || []).concat(story.id);
+            const txt = story.t(CANDS[d].n, G.name) || dropLine(d);
+            showEvent({ c: d, t: txt, ch: [{ t: "▶", fx: dropFx(d), after: () => doDrop(k + 1) }] });
           };
           return doDrop(0);
         }
@@ -2109,6 +2171,26 @@ function announce(a, idx, board, pass, tier) {
     }
   }
 }
+/* ================= 脱落ドラマ（ランダム） ================= */
+/* cn=去る候補生の名前, pn=プレイヤー名。tone: sad/shock/laugh/hope */
+const EXIT_STORIES = [
+  { id: "x_classic", tone: "sad", t: (cn, pn) => null },  /* キャラ固有の別れ（dropLine） */
+  { id: "x_poach", tone: "shock", t: (cn, pn) => `（翌朝、${cn}の姿が宿舎になかった）\n\nソウ「……夜のうちに、話があったんだ。\n海外の大手事務所から、直接オファーが来た。\n\n『うちのグループで、すぐデビューしないか』って」\n\n置き手紙には、こうあった。\n『ごめん。おれは、おれの近道を行く。\n──でも${pn}、本物になるのは、遠回りしたやつだと思う』` },
+  { id: "x_quit", tone: "shock", t: (cn, pn) => `${cn}「……オーディション、やめることにした。\n\n理由は……言わない。言えない。\n\nただ、ひとつだけ。\nアイドルになりたい理由が『逃げ』だって、ここで気づいたんだ。\n気づかせてくれたのは、本気のおまえらだよ。\n\n……今度は、ちゃんと向き合ってから戻ってくる」` },
+  { id: "x_comedy", tone: "laugh", t: (cn, pn) => `${cn}「実は……お笑いの養成所に受かった。\n\nいや、笑うなよ！ ……いや、笑ってくれ！\n\nここでみんなを笑わせるたびに思ったんだ。\n歌より、ダンスより、笑い取ったときが一番きもちいいって。\n\n${pn}、おれが賞レース優勝するのと、おまえのデビュー、どっちが先か勝負な！」` },
+  { id: "x_family", tone: "sad", t: (cn, pn) => `${cn}「……親父が倒れた。\n\n家の店、おれしか継げるやつがいない。\n\n夢と家族、天秤にかけたら……\n……いや、違うな。天秤なんかじゃない。\n両方大事だから、順番を決めただけだ。\n\n${pn}、テレビで待ってる。うちの店のテレビ、でかいんだ」` },
+  { id: "x_abroad", tone: "hope", t: (cn, pn) => `${cn}「留学することにした。ダンスの本場に。\n\nこのオーディションで分かったんだ。\nおれの実力、まだ全然足りない。\n\n悔しいから、世界で修行してくる。\n${pn}、次に会うときは、おれがおまえのバックで踊ってるかもな。\n……いや、センターは譲らねえか」` },
+  { id: "x_injury", tone: "sad", t: (cn, pn) => `（医務室のベッドで、${cn}は笑っていた）\n\n「膝、やっちゃった。全治3ヶ月。\n\n……踊れないアイドル候補生に、席はないよ。\nそれがこの世界のルール。分かってたことだ。\n\nでもさ、${pn}。\n治ったら、一番前で応援しに行くよ。\nペンライト、何色がいい？」` },
+  { id: "x_actor", tone: "hope", t: (cn, pn) => `${cn}「映画のオーディションに受かった。\n\n……主演じゃないよ？ セリフも3つだけ。\nでも、審査の途中で気づいたんだ。\n\nおれ、歌ってるときより、\n『誰かを演じてるとき』のほうが自由なんだって。\n\n${pn}、いつかおまえの主演MVに、おれが出る。約束だ」` },
+  { id: "x_solo", tone: "shock", t: (cn, pn) => `フマ「……${cn}については、おれから話す。\n\n事務所の判断で、ソロ・アーティストとして育成することになった。\nグループには入らない。だから、ここからは去る。\n\n……ライバルが1人、別の道で増えたと思え。\nそういう世界だ」` },
+  { id: "x_study", tone: "sad", t: (cn, pn) => `${cn}「……受験、するって決めた。\n\n夢を諦めるんじゃない。順番を変えるだけ。\n勉強も、ダンスと同じで、逃げたら一生追いかけてくるから。\n\n${pn}、おまえ計算つよいじゃん。\n……ちょっとだけ、うらやましかったんだぜ。\n\n合格発表の日、おたがい笑ってような」` },
+  { id: "x_band", tone: "laugh", t: (cn, pn) => `${cn}「バンド組むことにした。\n\nアイドルの曲って、誰かが作った曲だろ？\nおれ、自分の曲が歌いたくなっちゃったんだよね。\n\nギターは先週買った。コードは3つ弾ける。\n……3つありゃ、ロックはできる！\n\n${pn}、武道館で対バンしようぜ！」` },
+  { id: "x_backdancer", tone: "hope", t: (cn, pn) => `${cn}「プロのバックダンサーにスカウトされた。\n\n……センターを取る夢は、いったん置いてく。\nでも、ステージに立つ夢は、諦めてない。\n\n有名アーティストのツアーで、日本中まわる。\n${pn}のツアーにも、いつか呼ばれてやるよ。\n……ギャラは高いぜ？」` },
+  { id: "x_teacher", tone: "hope", t: (cn, pn) => `${cn}「地元でダンススクールの先生になる。\n\n笑うかもしれないけどさ、\nここで子どもたちのレッスン映像を見たとき、\n『教えたい』って気持ちが止まらなくなったんだ。\n\n10年後、おれの生徒がこのオーディションに来る。\nそのとき${pn}が審査員だったら……最高だな」` },
+  { id: "x_rival_group", tone: "shock", t: (cn, pn) => `（発表の夜、${cn}が全員を集めた）\n\n「ライバル事務所のグループに、加入が決まった。\n\n……裏切り者って言われても、しかたない。\nでも、おれはステージに立つことを最優先した。\n\n${pn}。次に会うのは、音楽番組の楽屋か、賞レースの舞台だ。\n……負けねえからな。おまえも来いよ、そこまで」` },
+  { id: "x_illness_family", tone: "sad", t: (cn, pn) => `${cn}「……妹が、入院してさ。\n\n手術、うまくいったんだけど、\nそばにいてやりたいって思ったら、涙が止まらなくなった。\n\n妹はさ、『お兄ちゃん、続けてよ』って怒るんだ。\nでも、いいんだ。\n\n${pn}、妹がおまえのファンになった。サインくれよ。\n……初めてのサイン、うちの妹でいいだろ？」` },
+];
+
 function dropLine(id) {
   const t = {
     kai: "「……21歳。ここが限界だった。\n\nでもな、{name}。おれの分まで行けなんて言わない。\nおまえは、おまえの理由で行け。\n\n……見てるから」",
@@ -2119,6 +2201,8 @@ function dropLine(id) {
     roi: "「……ふっ。このロイ様が落ちるとはね。\n世界がまだオレのおしゃれに追いついてなかったな。\n\n{name}、おまえのステージ衣装、いつかオレがデザインしてやる。\n約束な。……泣いてないし。これはラメだし」",
     masaki: "「悔しい、です。すごく。\nでも……努力が足りなかったのは、自分がいちばん分かってる。\n\n{name}くん、君の努力は僕が保証する。\nだから最後まで、胸を張って。……応援してる」",
     shuto: "「……ちぇっ。ここまでかー！\n\nでもさ、おれ、いたずらばっかりだったけど、\nほんとはみんなの笑顔が見たかっただけなんだ。\n\n{name}！ 最後にでっかい笑顔、見せてやれよな！」",
+    daigo: "「……あかんかったわ！！（号泣）\n\nなあ、みんな！ おれ、ここに来てよかった！\nこんな本気のやつらと出会えて、最っ高やった！！\n\n{name}！ おまえのこと、弟やと思っとるからな。\n兄ちゃんの分まで……頼んだで！！\n\n（全員で抱き合って、誰よりも大きな声で泣いた）」",
+    yuma: "「……負けは負け。言い訳はしない。\n\nでも、ひとつだけ言わせて。\n{name}、おまえと踊った合宿のステージ、\nおれのダンス人生で、一番たのしかった。\n\n……それが、くやしいんだよ。じゃあな」",
     takuto: "「……そっか。ここまでか。\n……ふしぎと、すっきりしてるよ。\nおまえたちの成長を、いちばん近くで見られたから。\n\nなあ、デビューしたら、また回転ずし行こうな。\n今度はおれのおごり。\n……順位より、その約束のほうがずっと大事だ」",
   };
   return t[id] || "「……ここまでだ」";
