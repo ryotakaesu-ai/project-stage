@@ -924,7 +924,7 @@ const pickWeak = () => STATS.reduce((a, b) => G.st[a.k] <= G.st[b.k] ? a : b).k;
 
 /* ================= セーブ ================= */
 const KEY = "projectStage_v1";
-const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [] };
+const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [], gstat: {}, epiSeen: [], dayEvSeen: {}, renWins: 0, renTotal: 0 };
 let DB = { meta: { ...DEF_META }, run: null };
 try {
   const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
@@ -2874,6 +2874,11 @@ function endDay() {
     G.saisonDone = true; save();
     return startSaison(() => afterDay());
   }
+  if (specialDayEvent(() => afterDay())) return;
+  if (G.alive.includes("ren") && G.day >= 5 && G.day < TOTAL_D && (G.renLast === undefined || G.day - G.renLast >= 5) && Math.random() < .3) {
+    G.renLast = G.day; save();
+    return startRenBattle(() => afterDay());
+  }
   if (G.day >= 7 && G.day < TOTAL_D - 1 && (G.natsuLast === undefined || G.day - G.natsuLast >= 2) && Math.random() < .5) {
     return startTokkun(() => afterDay());
   }
@@ -3201,6 +3206,13 @@ function submit() { if (!Q.input) return; judge(MATH.check(Q.input, Q.cur.a), fa
 function judge(ok, timeout) {
   if (Q.lock) return;
   if (timeout) Q.timedOut = true;
+  /* ジャンル別の正答記録（弱点分析用） */
+  const gk = (Q.cur && (Q.cur.genre || Q.genre)) || null;
+  if (gk && MATH.GENRE_NAME[gk]) {
+    DB.meta.gstat = DB.meta.gstat || {};
+    const st = DB.meta.gstat[gk] = DB.meta.gstat[gk] || { ok: 0, n: 0 };
+    st.n++; if (ok) st.ok++;
+  }
   Q.lock = true; cancelAnimationFrame(Q.raf);
   const el = (performance.now() - Q.t0) / 1000;
   Q.times.push(Math.min(el, Q.limit));
@@ -3558,6 +3570,177 @@ function extraSlot(board) {
   });
 }
 
+/* ================= ⚔️ レンとの1対1 計算バトル ================= */
+/* 交互ではなく「同じ問題を、レンより速く正確に」5本勝負 */
+const REN_TAUNT = [
+  "「……おれの記録、抜けるか？」",
+  "「速いだけじゃ勝てない。正確さもだ」",
+  "「まだ本気出してないぞ、おれ」",
+  "「いい顔してきたな。それでいい」",
+  "「勝ちたいなら、ミスするな」",
+];
+const REN_LOSE_LINE = [
+  "「……ちっ。今日はおまえの勝ちだ。\n\n言っとくが、明日は負けない。\n……おまえがいるから、おれは強くなれる。それは、認める」",
+  "「……やられた。完敗だ。\n\nくやしい。死ぬほどくやしい。\n\n……なあ、明日もやろうぜ。\nおまえと戦ってる時間が、いちばん伸びるんだ」",
+];
+const REN_WIN_LINE = [
+  "「おれの勝ちだな。……でも、あぶなかった。\n\n最後の1問、手が震えたよ。\nおまえ、確実に強くなってる。\n\n……次は、わからないぞ」",
+  "「勝った。……つまらん顔するな。\n\nいいか、今日負けたやつが明日勝つ。\nそれがこの世界だ。\n\nくやしいなら、明日また来い。逃げるなよ」",
+];
+function startRenBattle(done) {
+  const lv = lessonLv();
+  showEvent({
+    c: "ren",
+    t: "レン「……{name}。ちょっと来い。\n\n勝負しよう。1対1、5本勝負。\n\nルールは簡単だ。同じ問題を解く。\n速くて正確なほうが勝ち。それだけ。\n\n……言っとくが、手加減はしない。\nおまえに本気で勝ちたいからな」",
+    ch: [
+      { t: "⚔️ 受けて立つ！", fx: {}, after: () => {
+        let myWin = 0, renWin = 0, round = 0;
+        const renSkill = .55 + Math.min(.2, (G.day / 30) * .2);   /* 日数とともにレンも強くなる */
+        const nextRound = () => {
+          if (round >= 5 || myWin === 3 || renWin === 3) return finish();
+          round++;
+          startQuiz({
+            mode: "lesson", genre: pick(["pi", "frac", "ratio", "gyaku", "kufuu"]), lv, total: 1,
+            title: `⚔️ 第${round}戦　きみ ${myWin} − ${renWin} レン`,
+            onEnd: r => {
+              $("ovResult").classList.remove("on");
+              const won = r.correct === 1 && Math.random() < (r.score >= 88 ? .92 : r.score >= 74 ? .62 : .3) + (1 - renSkill) * .3;
+              if (won) myWin++; else renWin++;
+              G.totalQ += r.total; G.totalOK += r.correct;
+              showEvent({
+                c: "ren",
+                t: won
+                  ? `⚔️ 第${round}戦　きみの勝ち！\n\n【 きみ ${myWin} − ${renWin} レン 】\n\n${pick(REN_TAUNT)}`
+                  : `⚔️ 第${round}戦　レンの勝ち\n\n【 きみ ${myWin} − ${renWin} レン 】\n\n${pick(REN_TAUNT)}`,
+                ch: [{ t: myWin === 3 || renWin === 3 || round >= 5 ? "▶ 決着" : "▶ 次の勝負へ", fx: {}, after: nextRound }]
+              });
+            }
+          });
+        };
+        const finish = () => {
+          const win = myWin > renWin;
+          if (win) { G.fans += 1500; addStat("me", 7); addStat("tk", 3); G.aff.ren = clamp((G.aff.ren || 0) + 15, 0, 100); confetti(50); sfx.clear(); }
+          else { addStat("me", 5); G.aff.ren = clamp((G.aff.ren || 0) + 8, 0, 100); }
+          G.renBattles = (G.renBattles || 0) + 1;
+          DB.meta.renWins = (DB.meta.renWins || 0) + (win ? 1 : 0);
+          DB.meta.renTotal = (DB.meta.renTotal || 0) + 1;
+          save();
+          showEvent({
+            c: "ren",
+            t: `⚔️ 最終スコア　きみ ${myWin} − ${renWin} レン\n\n${win ? pick(REN_LOSE_LINE) : pick(REN_WIN_LINE)}\n\n（通算成績　${DB.meta.renWins}勝 ${DB.meta.renTotal - DB.meta.renWins}敗）`,
+            ch: [{ t: win ? "🏆 勝ち逃げはしない。また明日！" : "🔥 明日、絶対に勝つ", fx: { cond: 1 }, after: done }]
+          });
+        };
+        nextRound();
+      } },
+      { t: "「今日はやめとく」", fx: {}, after: done },
+    ]
+  });
+}
+
+/* ================= 📅 実日付の特別イベント ================= */
+function specialDayEvent(done) {
+  const d = new Date();
+  const m = d.getMonth() + 1, day = d.getDate();
+  const key = `${m}-${day}`;
+  DB.meta.dayEvSeen = DB.meta.dayEvSeen || {};
+  const stamp = `${d.getFullYear()}-${key}`;
+  if (DB.meta.dayEvSeen[key] === stamp) return false;   /* 同じ日は1回だけ */
+
+  let ev = null;
+  if (m === 2 && day >= 1 && day <= 5) {
+    ev = { c: "shino", t: `📅 ${m}月${day}日。\n\nシノ「……今日が、なんの日か知ってる？\n\n中学入試の、本番の日だ。\n\nいま この瞬間、全国の教室で、\n何万人もの小6が、鉛筆を握ってる。\n\n……ぼくたちも、今日だけは特別な1問を解こう。\n同じ時間に、同じ気持ちで。\n\n遠くで戦ってる誰かに、届くように」`,
+      fx: { st: { me: 8 }, fans: 2000 }, quiz: true };
+  } else if (m === 12 && day === 31) {
+    ev = { c: "tsukasa", t: "📅 12月31日。大晦日。\n\nフマ「1年が終わるな。\n\n……振り返るのは1回でいい。\n『今年、いちばん頑張った日はいつだ？』\n\nそれを思い出せるやつは、来年も頑張れる。\n\n……よいお年を。来年も、隣で戦おう」",
+      fx: { st: { me: 6 }, cond: 1 } };
+  } else if (m === 1 && day === 1) {
+    ev = { c: "kanade", t: "📅 1月1日。あけましておめでとう。\n\nソウ「今年の目標、決めた？\n\n……大きいのを1つと、小さいのを1つ。\n大きいのは心を燃やすため、小さいのは今日動くため。\n\n2つあると、人は迷わないんだ。\n\n……今年も、いい年にしようね」",
+      fx: { st: { me: 6 }, fans: 500 } };
+  } else if (m === 3 && day >= 1 && day <= 3) {
+    ev = { c: "shino", t: "📅 3月。合格発表の季節。\n\nシノ「……いまごろ、去年のあかりちゃんみたいな子が、\n掲示板の前で泣いてるんだろうね。\n\nうれし涙の子も、くやし涙の子も。\n\n……どっちの涙も、全力で走った人にしか流せない。\nぼくは、そう思う」",
+      fx: { st: { me: 7 } } };
+  } else if (m === 4 && day >= 1 && day <= 7) {
+    ev = { c: "kanade", t: "📅 4月。新学期。\n\nソウ「新しいクラス、新しい教室。\n\n……こわい？ わかるよ。\nでもね、新しい場所は『新しい自分』になれるチャンスでもある。\n\n去年の自分に縛られなくていい。\n……今日から、なりたい自分でいて」",
+      fx: { st: { me: 5 }, cond: 1 } };
+  } else if (m === 8 && day >= 10 && day <= 20) {
+    ev = { c: "daigo", t: "📅 8月。夏まっさかり。\n\nダイゴ「夏を制する者は受験を制す、っちゅうやろ。\n\nでもな、おれはこう思う。\n『夏に、自分の型を作った者が制する』。\n\n毎日おなじ時間に机に向かう。それだけでええ。\n\n……8月の自分が、2月の自分を助けるんや」",
+      fx: { st: { me: 6 } } };
+  }
+  if (!ev) return false;
+  DB.meta.dayEvSeen[key] = stamp; save();
+  showEvent({
+    c: ev.c, t: ev.t,
+    ch: ev.quiz
+      ? [{ t: "🌸 特別な1問を解く", fx: ev.fx, after: () => startQuiz({
+          mode: "lesson", genre: "kufuu", lv: 4, total: 1,
+          fixed: [{ ...pick(NATSU_QS), small: true, time: 300, genre: "kufuu" }],
+          title: "🌸 入試本番の日の1問",
+          onEnd: r => {
+            G.totalQ += r.total; G.totalOK += r.correct;
+            $("ovResult").classList.remove("on"); save();
+            showEvent({ c: "shino",
+              t: r.correct ? "シノ「……解けたね。\n\n今日、全国の教室でも、同じように解けた子がいる。\n解けなくて泣いてる子もいる。\n\n……どっちも、えらい。\n今日戦った全員に、いい春が来ますように」"
+                           : "シノ「……むずかしかったね。\n\nでもいいんだ。今日は、解けるかどうかより、\n『同じ日に、同じ問題に向かった』ことに意味がある。\n\n……全国の受験生に、いい春が来ますように」",
+              ch: [{ t: "🌸 いい春が来ますように", fx: { cond: 1 }, after: done }] });
+          }
+        }) }]
+      : [{ t: "▶", fx: ev.fx, after: done }]
+  });
+  return true;
+}
+
+/* ================= 🌸 エピローグ「1年後」（デビュー成功時） ================= */
+/* 5編。プレイ実績（好感度・注目度・正答率など）と、周回で未読のものを優先して選ばれる */
+const EPILOGUES = [
+  {
+    id: "ep_hall",
+    n: "第一章　初めての単独ライブ",
+    t: `──1年後。10月。\n\n楽屋の鏡の前で、{name}は自分の顔を見ていた。\n\n1年前と、たいして変わらない顔だ。少し背が伸びた。少し、目つきが強くなった。それだけ。\n\nでも、鏡の中の自分が着ているのは、あの日ステージ袖から見上げた、タイムレッスーの衣装だった。\n\n「{name}、5分前です」\n\nスタッフの声。立ち上がる。膝が、少しだけ震えている。\n\n（……緊張してるな、おれ）\n\nそう思った瞬間、あの言葉が浮かんだ。\n\n『緊張は、本気の証拠』\n\n誰の言葉だったか。ソウ先輩か、シノか、それともノスケ先生か。もう思い出せない。思い出せないくらい、何度も何度も、あの30日間で聞いた言葉だった。\n\n──暗転。\n\n扉が開く。音が、洪水みたいに押し寄せてくる。\n\nステージに立って、客席を見た瞬間、{name}は息を止めた。\n\n見渡すかぎり、光だった。\n\n何千本ものペンライトが、暗闇の中で揺れている。星空を、下から見上げているみたいだった。\n\nそのうちの何本かは、確実に、{name}の色だった。\n\n1年前、ひとりで計算ドリルを開いていた自分に、教えてやりたい。\n\n——おまえの解いたその1問の先に、この景色があるぞ、と。\n\nフマがマイクを握った。\n\n「東京！ 待たせたな！！」\n\n地鳴りのような歓声。\nイントロが鳴る。あの曲だ。『STAGE』。\n\n{name}は、大きく息を吸った。`,
+  },
+  {
+    id: "ep_akari",
+    n: "第二章　紺色の制服",
+    t: `ライブが終わって、汗だくのまま楽屋に戻ると、スタッフが小さな紙包みを持ってきた。\n\n「面会希望の方が。……小学生……あ、いや、中学生の女の子です」\n\n通してもらうと、そこに立っていたのは、見覚えのある顔だった。\n\nあかりちゃん。\n\nでも、あの日ランドセルを背負っていた小6の女の子は、そこにいなかった。紺色のブレザーに、まっすぐな背筋。少しだけ大人びた、中学生の顔がそこにあった。\n\n「……合格しました」\n\nそう言って、あかりちゃんは深く頭を下げた。\n\n「第一志望。ぎりぎりだったけど、受かりました。\n……あの、これ」\n\n差し出されたのは、一冊のノート。\n表紙はぼろぼろで、角が丸くなっていた。\n\n開くと──まちがえた問題が、びっしり貼られていた。赤ペンで「なぜまちがえたか」が書き込まれている。『くり上がりを暗算でやったから』『単位に丸をつけ忘れた』。\n\n最後のページに、こう書いてあった。\n\n『2月1日。行ってきます。\n　わたしの中には、あの日教えてもらった全部が入っています』\n\n{name}は、しばらく言葉が出なかった。\n\n「……見せてくれて、ありがとう」\n\nやっとそれだけ言うと、あかりちゃんは笑って、こう続けた。\n\n「わたし、算数がいちばん好きになりました。\n……お兄ちゃんたちのせいです」\n\nドアが閉まったあと、シノがぽつりと言った。\n\n「……ぼくたち、たぶん、いい仕事したね」\n\n{name}は、うなずくことしかできなかった。`,
+  },
+  {
+    id: "ep_seats",
+    n: "第三章　客席にいた人たち",
+    t: `打ち上げの帰り道、スマホが震えた。\n\nグループLINE。名前は『20,000分の14』。\nあのオーディションで一緒に戦った、全員のグループだった。\n\n『今日のライブ、行ってきたぞ』\n『は？ 来てたの？』\n『言ったら緊張するだろ』\n\n{name}は足を止めた。\n\n次々に写真が上がってくる。\n\n2階席のいちばん後ろから撮った、豆粒みたいなステージ。\nスタンドの端っこから撮った、逆光のシルエット。\nアリーナの真ん中から撮った、ピントの合っていないアップ。\n\n全部、同じ夜の、違う角度の景色だった。\n\n『おれの席、めっちゃ後ろだったけど、おまえだけ見えたわ』\n『バカ、それ双眼鏡だろ』\n『バレたか』\n\n続けて、一枚の写真が届いた。\n\n客席で撮った集合写真。\n\nそこには、あの30日でいなくなっていった全員が、肩を組んで笑っていた。海外へ行った者、家業を継いだ者、別の道を選んだ者、受験に戻った者。ばらばらの人生を歩いている、たった1年前まで同じ部屋で寝起きしていた仲間たち。\n\n最後に一言だけ、メッセージが流れた。\n\n『おれたちの分も、立っててくれてありがとう』\n\n{name}は、道の真ん中で立ち止まったまま、しばらく動けなかった。\n\n通行人が、不思議そうに横を通り過ぎていく。\n\n泣いてなんかいない。夜風が、少し冷たかっただけだ。`,
+  },
+  {
+    id: "ep_letter",
+    n: "第四章　1年前の自分への手紙",
+    t: `事務所から「ファンレターです」と渡された箱の中に、見覚えのある封筒が混ざっていた。\n\n自分の字だった。\n\n思い出した。オーディション初日に書かされた『1年後の自分への手紙』。すっかり忘れていた。\n\n封を開ける。\n\n『1年後のおれへ。\n\n　いま、正直こわいです。\n　20,000人の中から5人しか残らないと聞いて、帰りたくなりました。\n\n　でも、ひとつだけ決めたことがあります。\n　毎日、計算を10問やる。それだけは、なにがあってもやる。\n\n　どうせ才能はないので、それしかできません。\n\n　1年後のおれへ。\n　デビューできてなくてもいいです。\n　でも、あの10問だけは続けていてほしい。\n\n　続けてたら、それはもう、勝ちだと思うので』\n\n{name}は、手紙を持ったまま、机の引き出しを開けた。\n\nそこには、今朝も解いた計算ドリルが入っている。\n昨日も、一昨日も、その前も。\n\n365日ぶん、続いていた。\n\nペンを取って、手紙の余白に一行だけ書き足した。\n\n『続けてたよ。だから、ここにいる』\n\n封筒に戻して、引き出しの奥にしまった。\n\n次に開けるのは、10年後でいい。`,
+  },
+  {
+    id: "ep_next",
+    n: "最終章　次に来る誰かへ",
+    t: `年が明けて、事務所から一通の資料が回ってきた。\n\n『次期オーディション企画書』\n\n新しい候補生を募集する。今度は{name}たちが、審査する側だという。\n\n「……嘘だろ」\n\n思わず声が出た。あの席に、自分が座る?\nフマが、資料越しに笑った。\n\n「言ったろ。おれたちの人生も懸かってるって。\n……今度はおまえの人生に、誰かの人生が懸かる番だ」\n\n書類をめくると、応募者の欄に目が留まった。\n\n21,483名。\n\n1年前より、増えていた。\n\n（この中に、あの日のおれがいる）\n\nそう思った瞬間、胸の奥が熱くなった。\n\n自信のない子がいる。才能がないと思い込んでる子がいる。それでも机に向かってる子がいる。夜、こっそり泣いてる子がいる。\n\nその全員に、伝えたいことがあった。\n\n──審査初日。\n\n候補生たちが並ぶ部屋に入って、{name}はマイクを取った。\n\n緊張で、指先が冷たかった。1年前と、まったく同じように。\n\n「はじめまして。……いや、うそだ。\nはじめまして、じゃない。\n\nおれは、きみたちを知ってる。\n\nうまくいかない日に、それでも来たやつの顔を知ってる。\n才能がないって言われて、悔しくて眠れなかった夜を知ってる。\n\nなぜなら──1年前、そこに座ってたのは、おれだからだ」\n\n静まりかえった部屋で、いちばん前の子が、ぐっと顔を上げた。\n\n目が、光っていた。\n\nああ、と{name}は思った。\n\n物語は、終わらない。\n\n次の誰かに、渡されるだけだ。\n\n\n　　　── 完 ──`,
+  },
+];
+function playEpilogue(rk, after) {
+  /* デビュー（S/A/B+）のときだけ。周回で未読の章から順に、1回のプレイで1〜2章 */
+  DB.meta.epiSeen = DB.meta.epiSeen || [];
+  let avail = EPILOGUES.filter(e => !DB.meta.epiSeen.includes(e.id));
+  if (!avail.length) { DB.meta.epiSeen = []; avail = [...EPILOGUES]; }
+  const n = rk === "S" ? 2 : 1;               /* センターデビューなら2章読める */
+  const picked = avail.slice(0, n);
+  picked.forEach(e => DB.meta.epiSeen.push(e.id));
+  save();
+  let i = 0;
+  const step = () => {
+    if (i >= picked.length) return after();
+    const e = picked[i++];
+    showEvent({
+      c: i === 1 && picked[0].id === "ep_akari" ? "shino" : "kanade",
+      t: `🌸 エピローグ ── 1年後 ──\n『${e.n}』\n\n${e.t.replace(/\{name\}/g, G.name)}`,
+      ch: [{ t: i >= picked.length ? "✨ 物語を閉じる" : "▶ つづきを読む", fx: {}, after: step }]
+    });
+  };
+  step();
+}
+
 function ending(kind, board) {
   const stTotal = STATS.reduce((s, x) => s + G.st[x.k], 0);
   let rk, title, text;
@@ -3588,7 +3771,7 @@ function ending(kind, board) {
 
   const aliveChars = CAND_IDS.filter(id => G.aff[id] > 0);
   const topChar = aliveChars.length ? aliveChars.reduce((a, b) => G.aff[a] >= G.aff[b] ? a : b) : null;
-  const bond = topChar && G.aff[topChar] >= 60 ? `<div style="margin-top:12px;display:flex;gap:11px;align-items:center;background:#0e0e16;border-radius:8px;padding:11px;box-shadow:0 0 0 1px var(--line) inset">
+  const bond = topChar && G.aff[topChar] >= 45 ? `<div style="margin-top:12px;display:flex;gap:11px;align-items:center;background:#0e0e16;border-radius:8px;padding:11px;box-shadow:0 0 0 1px var(--line) inset">
     ${pImg(topChar, 54, 64)}<div style="font-size:12px;text-align:left;line-height:1.9">
     <b style="color:${CANDS[topChar].c}">${CANDS[topChar].n} とのエンディング</b><br>${bondEndText(topChar, rk)}</div></div>` : "";
 
@@ -3623,20 +3806,33 @@ function ending(kind, board) {
       <span style="font-size:10.5px;color:var(--ink3)">次の挑戦の強化に使える</span></div>
     <button class="btn" id="endOk">タイトルへ</button>`;
   show("scrEnd");
-  $("endOk").onclick = () => { sfx.tap(); G = null; renderTitle(); };
+  $("endOk").onclick = () => {
+    sfx.tap();
+    const debut = rk === "S" || rk === "A" || rk === "B+";
+    const fin = () => { G = null; renderTitle(); };
+    if (debut) return playEpilogue(rk, fin);
+    fin();
+  };
 }
 function bondEndText(id, rk) {
   const t = {
-    shion: "「……見てた。ずっと。<br>おまえのステージ、いちばん前で」",
-    ren:   "「今回は、おまえの勝ちだ。<br>……次は、ぜったい負けない」",
-    haru:  "「うおおお やったな！！<br>……おれの分も、頼んだぞ」",
-    kai:   "「よくやった。<br>……おれが行けなかった場所だ。しっかり立ってろ」",
-    sora:  "「かっこよかったです！<br>ぼくも、来年ぜったい行きます」",
-    takuto: "「約束、覚えてるか？ 回転ずし。<br>……おれのおごりだ。何皿でも食え」",
-    hara:  "「ちゃぼすーー！！（号泣）<br>……ダメだ、言葉になんねぇ！！ 最高だよおまえ！！」",
-    shino: "「……となり、いい？<br>……ずっと、こうなる気がしてた。……ふふ」",
+    shion: "「……見てた。ずっと。<br>おまえのステージ、いちばん前で。<br>……言葉は、いらないよな。おまえならわかる」",
+    ren:   "「今回は、おまえの勝ちだ。<br>……次は、ぜったい負けない。<br>おれがいたから、おまえは強くなった。忘れんなよ」",
+    haru:  "「うおおお やったな！！<br>……おれの分も、頼んだぞ。<br>最前列で、いちばんデカい声で叫んでるからな！」",
+    kai:   "「よくやった。<br>……おれが行けなかった場所だ。しっかり立ってろ。<br>21歳のおれの夢、おまえが持ってってくれ」",
+    sora:  "「かっこよかったです！<br>ぼくも、来年ぜったい行きます。<br>……そのときは、先輩って呼ばせてくださいね」",
+    takuto: "「約束、覚えてるか？ 回転ずし。<br>……おれのおごりだ。何皿でも食え。<br>ほたては、半分こな。そこは譲れない」",
+    hara:  "「ちゃぼすーー！！（号泣）<br>……ダメだ、言葉になんねぇ！！ 最高だよおまえ！！<br>おれのトス、ちゃんと決めやがったな……！」",
+    shino: "「……となり、いい？<br>……ずっと、こうなる気がしてた。……ふふ。<br><br>ぼくたち、数字を数えてばかりだったけど。<br>数えられないものが、いま、いちばん多い気がする」",
+    noa:   "「Congratulations.<br>……日本語だと、うまく言えないな。<br><br>Slow and steady──きみは、まさにそれだったよ。<br>いつか、一緒に歌おう」",
+    roi:   "「ふっ……やるじゃん。<br>デビュー衣装、袖のボタン留まってたか？<br><br>……冗談だよ。<br>おまえの晴れ姿、オレがいちばん見たかった。ほんとだぜ」",
+    masaki: "「……よかった。ほんとうに、よかった。<br>（ずっと下を向いて、泣いている）<br><br>君の努力は、僕が保証するって言ったよね。<br>……ほら、正しかった」",
+    shuto: "「うおおおお！！ やっっったーー！！<br>おれ、でっかい笑顔って言ったよな！？<br>……それ、いま、おまえがしてる顔だから！」",
+    daigo: "「ようやったな……ようやったな、ほんまに……！<br>（肩をつかんで、離さない）<br><br>兄ちゃん、鼻が高いわ。<br>おまえは、おれの誇りや」",
+    yuma:  "「……ダンスで言うなら。<br>いまのおまえの動き、いちばん『うそがない』。<br><br>言葉は苦手だから、これだけ。<br>……おまえと踊れて、よかった」",
   };
-  return t[id] + (rk === "S" ? `<br><span style="color:var(--gold)">☆ BEST ENDING ☆</span>` : "");
+  const base = t[id] || "「……おめでとう」";
+  return base + (rk === "S" ? `<br><span style="color:var(--gold)">☆ BEST ENDING ☆</span>` : "");
 }
 
 /* ================= ショップ ================= */
@@ -3704,21 +3900,68 @@ function condText(s) {
 /* ================= 記録 ================= */
 let zTab = 0;
 function openZukan() {
-  const tabs = ["デビュー記録", "スキル", "衣装", "データ"];
+  const tabs = ["アルバム", "弱点", "デビュー記録", "スキル", "衣装", "データ"];
   let body = "";
-  if (zTab === 0) {
+  if (zTab === 0) {          /* ===== 思い出アルバム ===== */
+    const shelves = [
+      { k: "gokakuSeen", n: "📖 先輩の合格ストーリー", all: GOKAKU_STORIES, title: x => x.n, text: x => x.t },
+      { k: "seikoSeen",  n: "🌙 スターの法則", all: SEIKO_LESSONS, title: x => x.n, text: x => x.t },
+      { k: "advSeen",    n: "📝 受験アドバイス", all: ADVICES, title: x => (PERSON(x.c).n + "より"), text: x => x.t },
+      { k: "voicesSeen", n: "🌸 受験生の声", all: JUKEN_VOICES, title: x => (PERSON(x.c).n), text: x => x.t },
+      { k: "epiSeen",    n: "✨ エピローグ「1年後」", all: EPILOGUES, title: x => x.n, text: x => x.t, byId: true },
+      { k: "natsuSeen",  n: "☀️ 夏の特訓・解説", all: NATSU_QS, title: x => x.tag, text: x => (x.q.replace(/<br>/g, "\n") + "\n\n──📖 解説──\n" + x.k) },
+    ];
+    body = shelves.map(sh => {
+      const seen = DB.meta[sh.k] || [];
+      const cnt = sh.byId ? sh.all.filter(x => seen.includes(x.id)).length : seen.length;
+      const pct = Math.round(cnt / sh.all.length * 100);
+      return `<div class="item" data-sh="${sh.k}" style="cursor:pointer">
+        <span class="ie">${sh.n.split(" ")[0]}</span>
+        <div class="it"><b>${sh.n.replace(/^\S+\s/, "")}</b>
+        <small>${cnt} / ${sh.all.length} 　
+        <span style="display:inline-block;width:74px;height:5px;background:#ffffff14;border-radius:3px;vertical-align:middle;overflow:hidden"><i style="display:block;height:100%;width:${pct}%;background:var(--gold)"></i></span>
+        ${pct}%</small></div><span class="own">読む</span></div>`;
+    }).join("");
+    body = `<div class="list">${body}</div>
+      <div class="smallnote">一度出会った話は、いつでも読み返せる。<br>周回するほど、本棚が増えていく。</div>`;
+    window.__shelves = shelves;
+  } else if (zTab === 1) {   /* ===== 弱点分析 ===== */
+    const gs = DB.meta.gstat || {};
+    const rows = Object.keys(gs).filter(k => gs[k].n >= 3)
+      .map(k => ({ k, r: gs[k].ok / gs[k].n, n: gs[k].n }))
+      .sort((a, b) => a.r - b.r);
+    if (!rows.length) {
+      body = `<div class="smallnote">まだデータが足りない。<br>ジャンルごとに3問以上とくと、シノが分析してくれる。</div>`;
+    } else {
+      const worst = rows[0], best = rows[rows.length - 1];
+      body = `<div class="item"><img class="ii" src="${CANDS.shino.img}" alt="">
+        <div class="it"><b>シノの分析</b><small>
+        きみのいちばんの弱点は【${MATH.GENRE_NAME[worst.k]}】。正答率 ${Math.round(worst.r * 100)}%。<br>
+        ……ここを3問やるのが、いま一番のびる。<br>
+        逆に【${MATH.GENRE_NAME[best.k]}】は ${Math.round(best.r * 100)}%。……もう武器だよ。</small></div></div>
+        <div class="divider"></div>
+        <div class="list">${rows.map(x => {
+          const p = Math.round(x.r * 100);
+          const col = p >= 80 ? "#4ad6b8" : p >= 60 ? "#ffcf5c" : "#e63946";
+          return `<div class="item"><span class="ie">${p >= 80 ? "💪" : p >= 60 ? "📈" : "🎯"}</span>
+            <div class="it"><b>${MATH.GENRE_NAME[x.k]}　<span style="color:${col}">${p}%</span></b>
+            <small><span style="display:inline-block;width:110px;height:6px;background:#ffffff14;border-radius:3px;vertical-align:middle;overflow:hidden"><i style="display:block;height:100%;width:${p}%;background:${col}"></i></span>　${x.n}問</small></div></div>`;
+        }).join("")}</div>
+        <div class="smallnote">全プレイ通算の記録。赤いところが伸びしろ。</div>`;
+    }
+  } else if (zTab === 2) {
     body = DB.meta.hall.length ? `<div class="list">${DB.meta.hall.map(h => `
       <div class="item"><img class="ii" src="${AVATARS[h.av].img}" alt="">
       <div class="it"><b>${esc(h.name)}　<span class="badge" style="color:${h.rank === "OUT" ? "#e63946" : "#ffcf5c"}">${h.rank}</span></b>
       <small>${h.title}　／　注目度 ${h.fans.toLocaleString()}　正答率 ${h.acc}%</small></div></div>`).join("")}</div>`
       : `<div class="smallnote">まだ誰も挑戦を終えていない。</div>`;
-  } else if (zTab === 1) {
+  } else if (zTab === 3) {
     body = `<div class="list">${SKILLS.map(s => {
       const has = DB.meta.skills.includes(s.id);
       return `<div class="item ${has ? "" : "lock"}"><span class="ie">${has ? s.e : "？"}</span>
         <div class="it"><b>${has ? s.n : "？？？"}</b><small>${has ? s.d : condText(s)}</small></div></div>`;
     }).join("")}</div><div class="smallnote">${DB.meta.skills.length} / ${SKILLS.length} 種 コンプリート</div>`;
-  } else if (zTab === 2) {
+  } else if (zTab === 4) {
     body = `<div class="list">${OUTFITS.map(o => {
       const has = DB.meta.outfits.includes(o.id);
       return `<div class="item ${has ? "" : "lock"}"><span class="ie">${has ? o.e : "？"}</span>
@@ -3740,6 +3983,34 @@ function openZukan() {
     <div class="tabs">${tabs.map((t, i) => `<button class="tab ${i === zTab ? "on" : ""}" data-t="${i}">${t}</button>`).join("")}</div>
     ${body}<div style="height:12px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
   $("sheetPanel").querySelectorAll(".tab").forEach(b => b.onclick = () => { zTab = +b.dataset.t; sfx.tap(); openZukan(); });
+  $("sheetPanel").querySelectorAll("[data-sh]").forEach(b => b.onclick = () => { sfx.tap(); openShelf(b.dataset.sh); });
+}
+
+/* 本棚：既読コンテンツの一覧と全文 */
+function openShelf(key) {
+  const sh = (window.__shelves || []).find(x => x.k === key);
+  if (!sh) return;
+  const seen = DB.meta[key] || [];
+  const items = sh.byId
+    ? sh.all.map((x, i) => ({ x, i })).filter(o => seen.includes(o.x.id))
+    : sh.all.map((x, i) => ({ x, i })).filter(o => seen.includes(o.i));
+  openSheet(`<div class="ptitle">${sh.n}<small>${items.length} / ${sh.all.length} 　読んだ話をもう一度</small></div>
+    ${items.length ? `<div class="list">${items.map(o =>
+      `<div class="item" data-read="${o.i}" style="cursor:pointer"><span class="ie">📄</span>
+       <div class="it"><b>${esc(sh.title(o.x))}</b><small>${esc(sh.text(o.x).replace(/<br>/g, " ").replace(/\n/g, " ").slice(0, 34))}…</small></div>
+       <span class="own">開く</span></div>`).join("")}</div>`
+      : `<div class="smallnote">まだ1つも読んでいない。<br>プレイを進めると、ここに増えていく。</div>`}
+    <div style="height:12px"></div>
+    <button class="btn dark" id="shBack">◀ アルバムへ</button>`);
+  $("shBack").onclick = () => { sfx.tap(); openZukan(); };
+  $("sheetPanel").querySelectorAll("[data-read]").forEach(b => b.onclick = () => {
+    sfx.tap();
+    const x = sh.all[+b.dataset.read];
+    openSheet(`<div class="ptitle">${esc(sh.title(x))}</div>
+      <div style="font-size:13px;line-height:2.1;white-space:pre-wrap;text-align:left;max-height:60vh;overflow-y:auto;background:#ffffff06;border-radius:12px;padding:14px">${sh.text(x).replace(/<br>/g, "\n")}</div>
+      <div style="height:12px"></div><button class="btn dark" id="rdBack">◀ もどる</button>`);
+    $("rdBack").onclick = () => { sfx.tap(); openShelf(key); };
+  });
 }
 
 /* ================= 強化（引きつぎ） ================= */
