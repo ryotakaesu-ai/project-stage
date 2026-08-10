@@ -1026,6 +1026,7 @@ $("btnCont").onclick = () => {
   G.hinoUsed = G.hinoUsed || {}; G.hinoSceneUsed = G.hinoSceneUsed || [];
   G.nichiUsed = G.nichiUsed || []; G.nichiSceneUsed = G.nichiSceneUsed || []; G.sapixSceneUsed = G.sapixSceneUsed || []; G.visitCount = G.visitCount || 0;
   G.liveDone = G.liveDone || false; G.concertDone = G.concertDone || false; G.qboxUsed = G.qboxUsed || []; G.natsuDone = G.natsuDone || false;
+  G.tokkunCount = G.tokkunCount || 0; G.tsumeCount = G.tsumeCount || 0; G.visitCount = G.visitCount || 0;
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -1094,7 +1095,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
-    talent: Object.fromEntries(CAND_IDS.map(id => [id, ri(-6, 6)])), usedExits: [], hinoUsed: {}, hinoSceneUsed: [], nichiUsed: [], nichiSceneUsed: [], sapixSceneUsed: [], visitCount: 0, liveDone: false, concertDone: false, qboxUsed: [], natsuDone: false,
+    talent: Object.fromEntries(CAND_IDS.map(id => [id, ri(-6, 6)])), usedExits: [], hinoUsed: {}, hinoSceneUsed: [], nichiUsed: [], nichiSceneUsed: [], sapixSceneUsed: [], visitCount: 0, liveDone: false, concertDone: false, qboxUsed: [], natsuDone: false, tokkunCount: 0, tsumeCount: 0,
     song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false, saisonDone: false, recentScores: [],
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
@@ -1535,7 +1536,7 @@ const SEIKO_LESSONS = [
     w: "「これは物語の途中」と考える", fx: { st: { me: 6, ex: 2 } } },
 ];
 function maybeSeiko() {
-  if ((G.day - (G.seikoLast || -9)) < 4 || G.day >= TOTAL_D - 1) return false;
+  if ((G.day - (G.seikoLast || -9)) < 5 || G.day >= TOTAL_D - 1) return false;
   DB.meta.seikoSeen = DB.meta.seikoSeen || [];
   let avail = SEIKO_LESSONS.map((_, i) => i).filter(i => !DB.meta.seikoSeen.includes(i));
   if (!avail.length) { DB.meta.seikoSeen = []; avail = SEIKO_LESSONS.map((_, i) => i); }
@@ -2970,12 +2971,47 @@ const FANMILE_EV = {
   30000: { c: "riku",    t: "「3万人。……もう『無名の候補生』じゃないな。\n雑誌が特集を組みたいって言ってきてる。\nおまえの物語、みんなが見たがってるんだよ」" },
   80000: { c: "tsukasa", t: "「8万。……この数字の意味がわかるか。\nおまえはもう、デビュー前から『スター』だ。\nあとは、ステージがそれを証明するだけだ」" },
 };
-function endDay() {
+function endDay(skipStudy) {
   G.milesSeen = G.milesSeen || []; G.fanMilesSeen = G.fanMilesSeen || [];
   if (G.day === 22 && !G.concertDone) {
     G.concertDone = true; save();
     return startConcert(() => afterDay());
   }
+  /* ===== 学習イベント（1日1回。終わったら物語イベントへ続く） ===== */
+  if (!skipStudy) {
+  /* 学校・塾の訪問は3種すべて必ず消化する（DAY8=日野学園／13=日能研／19=SAPIX、遅れたら翌日以降で回収） */
+  {
+    const VISITS = [
+      { d: 8,  f: startHino,        k: "hinoLast" },
+      { d: 13, f: startNichinoken,  k: "nichiLast" },
+      { d: 19, f: startSapix,       k: "sapixLast" },
+    ];
+    const cnt = G.visitCount || 0;
+    const nextVisit = VISITS[cnt];
+    if (nextVisit && G.day >= nextVisit.d && G.day < TOTAL_D) {
+      G.visitCount = cnt + 1; save();
+      return nextVisit.f(() => endDay(true));
+    }
+  }
+  /* ☀️ 夏の特訓＝1プレイ5回を保証（実物の夏期テスト問題＋じっくり解説） */
+  {
+    const TOKKUN_DAYS = [7, 11, 16, 21, 26];
+    const tc = G.tokkunCount || 0;
+    if (tc < TOKKUN_DAYS.length && G.day >= TOKKUN_DAYS[tc] && G.day < TOTAL_D) {
+      G.tokkunCount = tc + 1; save();
+      return startTokkun(() => endDay(true));
+    }
+  }
+  /* 🎯 詰めの一歩＝1プレイ4回を保証（取れたはずの点を取りにいく） */
+  {
+    const TSUME_DAYS = [5, 10, 17, 23];
+    const cc = G.tsumeCount || 0;
+    if (cc < TSUME_DAYS.length && G.day >= TSUME_DAYS[cc] && G.day < TOTAL_D) {
+      G.tsumeCount = cc + 1; save();
+      return startTsume(() => endDay(true));
+    }
+  }
+  }  /* ===== ここまで学習イベント ===== */
   const fmile = FANMILES.find(m => G.fans >= m && !G.fanMilesSeen.includes(m));
   if (fmile) {
     G.fanMilesSeen.push(fmile); save();
@@ -2990,7 +3026,7 @@ function endDay() {
     return showEvent({ c: evc, t: `🏅 通算${mile}問 とっぱ！\n\n${ev.t}`, ch: [{ t: "▶", fx: { st: { me: 3 }, cond: 1 }, after: () => endDay() }] });
   }
   /* シノ保証枠：4日以上あいたら必ずシノイベント（脱落後はLINEで続く） */
-  if (G.day - (G.shinoLast || 0) >= 4 && G.day < TOTAL_D) {
+  if (G.day - (G.shinoLast || 0) >= 5 && G.day < TOTAL_D) {
     const sPool = EVENTS.filter(e => e.c === "shino" && !G.evseen.includes(e.id));
     if (sPool.length) {
       const e = pick(sPool);
@@ -3016,12 +3052,6 @@ function endDay() {
     G.renLast = G.day; save();
     return startRenBattle(() => afterDay());
   }
-  if (G.day >= 6 && G.day < TOTAL_D - 1 && (G.tsumeLast === undefined || G.day - G.tsumeLast >= 3) && Math.random() < .45) {
-    return startTsume(() => afterDay());
-  }
-  if (G.day >= 7 && G.day < TOTAL_D - 1 && (G.natsuLast === undefined || G.day - G.natsuLast >= 2) && Math.random() < .5) {
-    return startTokkun(() => afterDay());
-  }
   if (!G.liveDone && G.day >= 13 && G.day < TOTAL_D - 1 && Math.random() < .35) {
     G.liveDone = true; save();
     return startLive(() => afterDay());
@@ -3029,16 +3059,6 @@ function endDay() {
   if (G.day >= 8 && G.day < TOTAL_D - 1 && (G.qboxLast === undefined || G.day - G.qboxLast >= 6) && Math.random() < .3) {
     save();
     return startQBox(() => afterDay());
-  }
-  {
-    const lastVisit = Math.max(G.hinoLast ?? -99, G.nichiLast ?? -99, G.sapixLast ?? -99);
-    if (G.day >= 6 && G.day < TOTAL_D - 1 && G.day - lastVisit >= 4 && Math.random() < .45) {
-      /* 学校・塾訪問をローテーション（日野学園→日能研→SAPIX→…） */
-      const seq = [startHino, startNichinoken, startSapix];
-      const cnt = G.visitCount || 0;
-      G.visitCount = cnt + 1; save();
-      return seq[cnt % 3](() => afterDay());
-    }
   }
   for (const id of G.alive) {
     const b = (BONDS[id] || []).find(x => G.aff[id] >= x.at && !G.bonds.includes(id + x.at));
