@@ -1992,15 +1992,34 @@ function startTokkun(done) {
   const coach = TOKKUN_COACHES.find(id => !CANDS[id] || G.alive.includes(id)) || "nosuke";
   const cn = PERSON(coach).n;
 
-  const runQ = (timeMul, onWin, onLose) => startQuiz({
+  const runQ = (sec, onWin, onLose, onTimeout) => startQuiz({
     mode: "lesson", genre: "kufuu", lv: 4, total: 1,
-    fixed: [{ ...prob, small: true, time: Math.round(120 * timeMul), genre: "kufuu" }],
+    fixed: [{ ...prob, small: true, time: sec, genre: "kufuu" }],
     title: "☀️ 夏の特訓",
     onEnd: r => {
       G.totalQ += r.total; G.totalOK += r.correct;
       $("ovResult").classList.remove("on");
-      if (r.correct === 1) onWin(); else onLose();
+      if (r.correct === 1) return onWin();
+      if (r.timedOut && onTimeout) return onTimeout();
+      onLose();
     }
+  });
+  /* 解説→リベンジ（5分）の共通フロー */
+  const revengeWin = () => {
+    G.fans += 600; addStat("me", 7);
+    confetti(50); sfx.clear(); save();
+    showEvent({ c: coach, t: pick(TOKKUN_REVENGE_WIN),
+      ch: [{ t: "🏆 一生モノの1問！", fx: { cond: 1 }, after: done }] });
+  };
+  const revengeLose = () => {
+    addStat("me", 5);
+    showEvent({ c: coach, t: pick(TOKKUN_REVENGE_LOSE),
+      ch: [{ t: "💪 明日はもっと強くなる", fx: { cond: 1 }, after: done }] });
+  };
+  const goKaisetsu = () => showEvent({
+    c: coach,
+    t: `──📖 じっくり解説──\n\n${prob.k}\n\n……道筋、見えた？\nよし。同じ問題に、もう一度挑戦だ。\n今度は5分たっぷりやる。……いけ！`,
+    ch: [{ t: "🔥 リベンジする！", fx: {}, after: () => runQ(300, revengeWin, revengeLose) }]
   });
 
   const finish = (fx, msg) => {
@@ -2013,7 +2032,7 @@ function startTokkun(done) {
   showEvent({
     c: coach,
     t: pick(TOKKUN_INTROS)(cn),
-    ch: [{ t: "🔥 1問入魂！", fx: {}, after: () => runQ(1,
+    ch: [{ t: "🔥 1問入魂！", fx: {}, after: () => runQ(180,
       /* 一発正解 */
       () => {
         G.fans += 800; addStat("me", 6);
@@ -2024,26 +2043,32 @@ function startTokkun(done) {
               ch: [{ t: "「ありがとうございました！」", fx: { cond: 1 }, after: done }] });
           } }] });
       },
-      /* 不正解→解説→リベンジ */
+      /* 不正解→鼓舞→解説→リベンジ */
       () => {
         showEvent({ c: coach, t: pick(TOKKUN_CHEER),
-          ch: [{ t: "📖 解説をじっくり読む", fx: {}, after: () => showEvent({
-            c: coach,
-            t: `──📖 じっくり解説──\n\n${prob.k}\n\n……道筋、見えた？\nよし。同じ問題に、もう一度挑戦だ。\n今度は時間もたっぷりやる。……いけ！`,
-            ch: [{ t: "🔥 リベンジする！", fx: {}, after: () => runQ(1.5,
+          ch: [{ t: "📖 解説をじっくり読む", fx: {}, after: goKaisetsu }] });
+      },
+      /* 時間切れ→延長戦（＋3分）か、解説を見てから再挑戦かを選べる */
+      () => {
+        showEvent({ c: coach,
+          t: "「⏱ 時間切れ！ ……でも、あわてるな。\n\nいま、頭の中で考えが進んでたんじゃないか？\nもうちょっとで届きそうなら——延長戦、いってみるか。\n\n本物の入試でも『あと3分あれば……』って場面はある。\n今日は特訓だ。その3分、やる」",
+          ch: [
+            { t: "⏱ 延長戦！（もう3分ねばる）", fx: {}, after: () => runQ(180,
               () => {
-                G.fans += 600; addStat("me", 7);
-                confetti(50); sfx.clear(); save();
-                showEvent({ c: coach, t: pick(TOKKUN_REVENGE_WIN),
-                  ch: [{ t: "🏆 一生モノの1問！", fx: { cond: 1 }, after: done }] });
+                G.fans += 700; addStat("me", 6);
+                confetti(45); sfx.clear(); save();
+                showEvent({ c: coach,
+                  t: `「……延長戦で、決めたか！！\n\nあきらめずに考え続けて、自力でゴールにたどり着いた。\nこれ、いちばんかっこいい勝ち方だぞ。\n\n粘り勝ちできる人は、本番に強い。\n……いいもの見せてもらった！」\n\n──📖 今日の考え方──\n${prob.k}`,
+                  ch: [{ t: "✨ 粘り勝ち！", fx: { cond: 1, st: { me: 2 } }, after: done }] });
               },
-              () => {
-                addStat("me", 5);
-                showEvent({ c: coach, t: pick(TOKKUN_REVENGE_LOSE),
-                  ch: [{ t: "💪 明日はもっと強くなる", fx: { cond: 1 }, after: done }] });
-              }
-            ) }]
-          }) }] });
+              () => showEvent({ c: coach, t: pick(TOKKUN_CHEER),
+                ch: [{ t: "📖 解説をじっくり読む", fx: {}, after: goKaisetsu }] }),
+              () => showEvent({ c: coach,
+                t: "「⏱ ここまで！ ……よく粘った！\n\n6分間、1問と戦い続けたその集中力、本物だ。\nこうなったら、解き方を見てから取り返そう。\n\n『考え抜いてから解説を読む』——\nこれが一番、頭に残る順番なんだぜ」",
+                ch: [{ t: "📖 解説をじっくり読む", fx: { st: { me: 2 } }, after: goKaisetsu }] })
+            ) },
+            { t: "📖 解説を見てから再挑戦", fx: {}, after: goKaisetsu },
+          ] });
       }
     ) }]
   });
@@ -3175,6 +3200,7 @@ function tickQ() {
 function submit() { if (!Q.input) return; judge(MATH.check(Q.input, Q.cur.a), false); }
 function judge(ok, timeout) {
   if (Q.lock) return;
+  if (timeout) Q.timedOut = true;
   Q.lock = true; cancelAnimationFrame(Q.raf);
   const el = (performance.now() - Q.t0) / 1000;
   Q.times.push(Math.min(el, Q.limit));
@@ -3197,7 +3223,7 @@ function judge(ok, timeout) {
     $("qInput").className = "ng";
   }
   Q.sum += sc;
-  let sub = ok ? "" : `<small>正解　${MATH.ansHtml(Q.cur.a)}${Q.cur.a.unit || ""}</small>`;
+  let sub = ok ? "" : `<small>正解　${MATH.ansHtml(Q.cur.a)}</small>`;
   if (ok && Q.combo >= 3 && Math.random() < .45) sub = `<small>${cheerLine()}</small>`;
   $("qCombo").textContent = Q.combo >= 2 ? `${Q.combo} COMBO` : "";
   $("qCombo").className = Q.combo >= 3 ? "hot" : "";
@@ -3212,7 +3238,7 @@ function endQuiz() {
   const score = Math.round(Q.sum / Q.total);
   const avgTime = Math.round(Q.times.reduce((a, b) => a + b, 0) / Q.total * 10) / 10;
   const totalTime = Math.round((performance.now() - Q.startAll) / 100) / 10;
-  const r = { score, correct: Q.correct, total: Q.total, best: Q.best, misses: Q.misses, avgTime, totalTime };
+  const r = { score, correct: Q.correct, total: Q.total, best: Q.best, misses: Q.misses, avgTime, totalTime, timedOut: !!Q.timedOut };
   const cb = Q.onEnd; Q = null; cb(r);
 }
 document.addEventListener("keydown", ev => {
