@@ -1025,7 +1025,7 @@ $("btnCont").onclick = () => {
   G.talent = G.talent || {}; G.usedExits = G.usedExits || [];
   G.hinoUsed = G.hinoUsed || {}; G.hinoSceneUsed = G.hinoSceneUsed || [];
   G.nichiUsed = G.nichiUsed || []; G.nichiSceneUsed = G.nichiSceneUsed || []; G.sapixSceneUsed = G.sapixSceneUsed || []; G.visitCount = G.visitCount || 0;
-  G.liveDone = G.liveDone || false; G.concertDone = G.concertDone || false; G.qboxUsed = G.qboxUsed || [];
+  G.liveDone = G.liveDone || false; G.concertDone = G.concertDone || false; G.qboxUsed = G.qboxUsed || []; G.natsuDone = G.natsuDone || false;
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -1094,7 +1094,7 @@ $("btnStart").onclick = () => {
     skills: [], bonds: [], bestCombo: 0, perfectLesson: 0,
     outfit: null, ownOutfits: [], items: { omamori: 0, note: 0 },
     alive: [...CAND_IDS], team: null, warn: false, warnCount: 0,
-    talent: Object.fromEntries(CAND_IDS.map(id => [id, ri(-6, 6)])), usedExits: [], hinoUsed: {}, hinoSceneUsed: [], nichiUsed: [], nichiSceneUsed: [], sapixSceneUsed: [], visitCount: 0, liveDone: false, concertDone: false, qboxUsed: [],
+    talent: Object.fromEntries(CAND_IDS.map(id => [id, ri(-6, 6)])), usedExits: [], hinoUsed: {}, hinoSceneUsed: [], nichiUsed: [], nichiSceneUsed: [], sapixSceneUsed: [], visitCount: 0, liveDone: false, concertDone: false, qboxUsed: [], natsuDone: false,
     song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false, saisonDone: false, recentScores: [],
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
   };
@@ -1891,6 +1891,84 @@ function startHino(done) {
   });
 }
 
+/* ================= 日能研 夏期講習特別テスト（実物・テスト1＆2） ================= */
+const NATSU_QS = [
+  /* --- テスト1より --- */
+  { q: "（□−196）÷14＝14。<br>□に入る数は？", a: { t: "num", v: 392 }, tag: "夏期テスト1（逆算）", note: "□−196＝196" },
+  { q: "1/6＋5/6×（1−□）＝3/5。<br>□に入る数は？（分数で）", a: { t: "frac", n: 12, d: 25 }, tag: "夏期テスト1（逆算）", note: "5/6×(1−□)＝13/30" },
+  { q: "3つの内角の比が 1:4:7 の三角形。<br>いちばん大きい内角は 何度？", a: { t: "num", v: 105, unit: "度" }, tag: "夏期テスト1（角度と比）", note: "180×7/12" },
+  { q: "母は32歳、娘は3歳。<br>母の年れいが娘の2倍になるのは 何年後？", a: { t: "num", v: 26, unit: "年後" }, tag: "夏期テスト1（年令算）", note: "32＋□＝(3＋□)×2" },
+  { q: "10円玉と50円玉が合わせて40枚、<br>合計920円。10円玉は 何枚？", a: { t: "num", v: 27, unit: "枚" }, tag: "夏期テスト1（つるかめ算）", note: "(50×40−920)÷(50−10)" },
+  { q: "クラス会の費用。1人600円ずつだと2700円たりず、700円ずつだとちょうど。<br>費用は全部で 何円？", a: { t: "num", v: 18900, unit: "円" }, tag: "夏期テスト1（過不足算）", note: "人数＝2700÷100＝27人" },
+  { q: "正十五角形の対角線は 何本？", a: { t: "num", v: 90, unit: "本" }, tag: "夏期テスト1（図形の性質）", note: "15×(15−3)÷2" },
+  { q: "クッキーを1人6枚ずつ配ると34枚余り、9枚ずつだと23枚たりない。<br>クッキーは全部で 何枚？", a: { t: "num", v: 148, unit: "枚" }, tag: "夏期テスト1（差集め算）", note: "人数＝(34＋23)÷3＝19人" },
+  { q: "茶わん300個を運ぶ。1個50円もらえるが、こわすと運び賃なし＋70円弁償。<br>もらったお金が11160円のとき、こわしたのは 何個？", a: { t: "num", v: 32, unit: "個" }, tag: "夏期テスト1（つるかめ算）", note: "(15000−11160)÷120" },
+  { q: "Aの所持金はBの 2と1/3倍、BはCの80%。<br>A:B:C＝□:12:15。□は？", a: { t: "num", v: 28 }, tag: "夏期テスト1（比）", note: "12×7/3" },
+  { q: "A:B:C＝28:12:15。AがCに2600円渡すとAとCが同額に。<br>Bの所持金は 何円？", a: { t: "num", v: 4800, unit: "円" }, tag: "夏期テスト1（比）", note: "差13＝5200円→①＝400円" },
+  /* --- テスト2より --- */
+  { q: "3と6/7 ÷ 1と1/14 ÷ 6 ＝ □<br>（分数で）", a: { t: "frac", n: 3, d: 5 }, tag: "夏期テスト2（分数計算）", note: "27/7×14/15×1/6" },
+  { q: "4.8÷（□−2/5）＝2と2/7。<br>□は？（仮分数 ◯/◯ で）", a: { t: "frac", n: 5, d: 2 }, tag: "夏期テスト2（逆算）", note: "□−2/5＝4.8÷16/7＝2.1" },
+  { q: "水120gに食塩30gを加えてよく混ぜると、<br>濃度 何%？", a: { t: "num", v: 20, unit: "%" }, tag: "夏期テスト2（食塩水）", note: "30÷150" },
+  { q: "原価800円の品物に、原価の4割の利益を見込んで定価をつけると 何円？", a: { t: "num", v: 1120, unit: "円" }, tag: "夏期テスト2（売買算）", note: "800×1.4" },
+  { q: "65と91の最大公約数は？", a: { t: "num", v: 13 }, tag: "夏期テスト2（数の性質）" },
+  { q: "1から100までの整数の中に、3でも4でも割り切れる整数は 何個？", a: { t: "num", v: 8, unit: "個" }, tag: "夏期テスト2（倍数）", note: "12の倍数の個数" },
+  { q: "4、10、16、22、28、34…と並ぶ数列。<br>左から40番目の数は？", a: { t: "num", v: 238, unit: "" }, tag: "夏期テスト2（数列）", note: "4＋6×39" },
+  { q: "底面の半径6cm、高さ10cmの円柱の体積は 何cm³？（円周率3.14）", a: { t: "num", v: 1130.4, unit: "cm³" }, tag: "夏期テスト2（立体）", note: "6×6×3.14×10" },
+  { q: "七角すいには、辺が 何本ある？", a: { t: "num", v: 14, unit: "本" }, tag: "夏期テスト2（立体）", note: "底面7＋側面7" },
+  { q: "9%の食塩水480gを加熱して水を□g蒸発させると12%に。<br>□は？", a: { t: "num", v: 120, unit: "g" }, tag: "夏期テスト2（食塩水）", note: "食塩43.2g÷0.12＝360g" },
+  { q: "10%の食塩水400gに食塩を□g加えると20%に。<br>□は？", a: { t: "num", v: 50, unit: "g" }, tag: "夏期テスト2（食塩水）", note: "(40＋□)＝(400＋□)×0.2" },
+  { q: "定価1500円の品物を□%引きで売ったら1230円。<br>□は？", a: { t: "num", v: 18, unit: "%" }, tag: "夏期テスト2（売買算)", note: "270÷1500" },
+  { q: "6で割っても10で割っても2余る整数のうち、500に最も近い数は？", a: { t: "num", v: 512 }, tag: "夏期テスト2（数の性質）", note: "30の倍数＋2" },
+  { q: "3と1/5、3と3/7 のどちらにかけても整数になる、0より大きい最小の分数は？<br>（仮分数 ◯/◯ で）", a: { t: "frac", n: 35, d: 8 }, tag: "夏期テスト2（分数）", note: "分子＝5と7の最小公倍数／分母＝16と24の最大公約数" },
+  { q: "2けたの整数AとB。積は3840、最大公約数は16、AはBより大きい。<br>Aは？", a: { t: "num", v: 80 }, tag: "夏期テスト2（数の性質）", note: "16×5＝80、16×3＝48" },
+  { q: "赤の電球は3秒ついて2秒消え、青は2秒ついて1秒消える。同時についてから250秒間で、両方ついている時間は 何秒？", a: { t: "num", v: 100, unit: "秒" }, tag: "夏期テスト2（周期算）", note: "周期15秒中6秒×16＋4" },
+  { q: "側面が半径24cmの扇形、底面が半径10cmの円の円すい展開図。<br>扇形の中心角は 何度？", a: { t: "num", v: 150, unit: "度" }, tag: "夏期テスト2（円すい）", note: "360×10/24" },
+  { q: "つまようじで正六角形の形を1列に45個作る。<br>少なくとも 何本必要？", a: { t: "num", v: 226, unit: "本" }, tag: "夏期テスト2（規則性）", note: "6＋5×44" },
+];
+function startNatsuTest(done) {
+  showEvent({
+    c: "shino",
+    t: "シノ「……{name}、これ見て。\n\n日能研の『夏期講習特別テスト』。\nこの夏、全国の受験生が本気で戦った、本物のテストだよ。\n\n……ぼくたちも、これに挑戦しよう。\n受験生応援キャンペーンをやってる以上、\n『応援する側』が逃げるわけには、いかないでしょ。\n\n制限時間は本番と同じ緊張感で。……いくよ」",
+    ch: [{ t: "🔥 本物のテストに挑戦！", fx: {}, after: () => {
+      const qs = [...NATSU_QS].sort(() => Math.random() - .5).slice(0, 8);
+      startQuiz({
+        mode: "lesson", genre: "kufuu", lv: 4, total: 8,
+        fixed: qs.map(q => ({ ...q, small: true, time: 95, genre: "kufuu" })),
+        title: "📝 夏期講習特別テスト",
+        onEnd: r => {
+          G.totalQ += r.total; G.totalOK += r.correct;
+          addStat("me", 8);
+          const great = r.correct >= 6;
+          G.fans += great ? 2500 : 1200;
+          confetti(great ? 60 : 25); sfx.clear(); save();
+          $("resPanel").innerHTML = `
+            <div class="resHead">
+              <div class="lbl">📝 夏期講習特別テスト</div>
+              <div class="resScore" style="font-size:34px">${r.correct} / 8 問</div>
+              <div class="resRank" style="background:${great ? "#ffcf5c" : "#4ad6b8"};color:#0a0a11">${great ? "🌸 受験生レベル認定！！" : "本物の手ごわさを知った"}</div>
+            </div>
+            <div class="gains">
+              <div class="gain"><span>📈 注目度（挑戦が受験生の間で話題に）</span><b>+${great ? 2500 : 1200}</b></div>
+              <div class="gain"><span>精神力（本物のテストと戦った）</span><b>+8</b></div>
+            </div>
+            <button class="btn" id="resOk">▶</button>`;
+          $("ovResult").classList.add("on");
+          $("resOk").onclick = () => {
+            sfx.tap(); $("ovResult").classList.remove("on");
+            showEvent({
+              c: "shino",
+              t: great
+                ? "シノ「……すごい。ほんとにすごいよ。\nこれ、実際の受験生でも正答率が半分くらいの問題なんだ。\n\n……いま全国で、同じ問題と戦ってる小6がいる。\nその子たちも、きみと同じように、あきらめずに鉛筆を動かしてる。\n\n……なんだか、遠くの戦友ができた気分だね」"
+                : "シノ「……手ごわいでしょ、本物は。\nでもね、これが『受験生が毎週戦ってる世界』なんだ。\n\nまちがえた問題は、伸びしろ。\n復習タイムで取り返せば、それはもう、きみの武器だよ。\n\n……全国の受験生と、いっしょに強くなろう」",
+              ch: [{ t: "「全国の受験生も、頑張ってるんだな」", fx: { st: { me: 4 }, cond: 1 }, after: done }]
+            });
+          };
+        }
+      });
+    } }]
+  });
+}
+
 /* ================= 受験生応援キャンペーン：日能研 目黒校 ================= */
 /* タイムレッスーには「受験生を応援したい」という思いがある */
 const NICHI_AKARI = [
@@ -1938,7 +2016,7 @@ function startNichinoken(done) {
   if (!sAvail.length) { G.nichiSceneUsed = []; sAvail = NICHI_SCENES.map((_, i) => i); }
   const sIdx = sAvail[Math.floor(Math.random() * sAvail.length)];
   G.nichiSceneUsed.push(sIdx);
-  const qs = [...NICHI_QS].sort(() => Math.random() - .5).slice(0, 3);
+  const qs = [...NICHI_QS, ...NATSU_QS].sort(() => Math.random() - .5).slice(0, 3);
   const spk = hasShino ? "shino" : (["takuto", "masaki", "daigo", "hara", "shuto"].find(id => G.alive.includes(id)) || "kanade");
 
   const doQuiz = () => startQuiz({
@@ -2690,6 +2768,10 @@ function endDay() {
   if (!G.saisonDone && G.day >= 10 && Math.random() < .4) {
     G.saisonDone = true; save();
     return startSaison(() => afterDay());
+  }
+  if (!G.natsuDone && G.day >= 9 && G.day < TOTAL_D - 1 && Math.random() < .4) {
+    G.natsuDone = true; save();
+    return startNatsuTest(() => afterDay());
   }
   if (!G.liveDone && G.day >= 13 && G.day < TOTAL_D - 1 && Math.random() < .35) {
     G.liveDone = true; save();
