@@ -924,7 +924,7 @@ const pickWeak = () => STATS.reduce((a, b) => G.st[a.k] <= G.st[b.k] ? a : b).k;
 
 /* ================= セーブ ================= */
 const KEY = "projectStage_v1";
-const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [], gstat: {}, epiSeen: [], dayEvSeen: {}, renWins: 0, renTotal: 0, oshiSeen: false };
+const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [], gstat: {}, epiSeen: [], dayEvSeen: {}, renWins: 0, renTotal: 0, oshiSeen: false, tsumeSeen: [] };
 let DB = { meta: { ...DEF_META }, run: null };
 try {
   const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
@@ -1886,6 +1886,127 @@ function startHino(done) {
           ch: [{ t: "▶", fx: { st: { me: 2 }, aff: { [second]: 5 }, silent: true, msg: "あたたかい時間だった" }, after: goScene }]
         });
         else goScene();
+      } }]
+    }) }]
+  });
+}
+
+/* ================= 🎯 詰めの一歩トレーニング ================= */
+/* 「考え方は合っているのに、最後のひと手間で落とす」型だけを集めた特訓。
+   ワナ（よくある誤答）を先に見せてから解かせるのがミソ。 */
+const TSUME_QS = [
+  { q: "定価1500円の品物を □%引き で売ったら、売値は1230円になった。<br>□は？",
+    a: { t: "num", v: 18, unit: "%" }, tag: "🎯 聞かれたことに答える", trap: "82",
+    k: "1230÷1500＝0.82。……ここまでは完璧。\n\nでも【0.82は「売値の割合」】。\n聞かれているのは【引いた割合】。\n\n100−82＝18%。\n\n『あと1回の引き算』を忘れた瞬間、0点になる。\n答えを出したら、必ず問題文にもどって\n『これ、聞かれたこと？』と3秒だけ確認する。" },
+  { q: "つまようじで正六角形を1列に45個つくる。<br>少なくとも何本必要？",
+    a: { t: "num", v: 226, unit: "本" }, tag: "🎯 最初の1個だけ特別", trap: "225",
+    k: "5×45＝225。……おしい！\n\n【1個目だけ6本、2個目からは5本】。\n6＋5×44＝226本。\n\n植木算・規則性は、\n『最初だけ特別あつかい』を忘れると、必ず1つズレる。\n\n図を3個ぶんだけ描いて数える。それだけで防げる。" },
+  { q: "底面の半径10cm、母線24cmの円すい。<br>展開図の扇形の中心角は 何度？",
+    a: { t: "num", v: 150, unit: "度" }, tag: "🎯 半径と直径をまちがえない", trap: "300",
+    k: "360×10/24＝150度。\n\nワナは【半径10を直径20と読む】こと。\n360×20/24＝300度。……こうなる。\n\n図形で数字が出てきたら、まず\n『これは半径？ 直径？』と口に出す。\n\n半径・直径の取りちがえは、算数の三大事故のひとつ。" },
+  { q: "6で割っても10で割っても2余る整数のうち、<br>500に最も近い整数は？",
+    a: { t: "num", v: 512 }, tag: "🎯 上下を両方たしかめる", trap: "482",
+    k: "30の倍数＋2 → …482、512…\n\n482は500より18小さい。\n512は500より12大きい。\n→ 近いのは512。\n\n【「最も近い」は、下だけ見てはいけない】。\n上と下の両方を出して、差を比べる。\n\n最後のひと手間をサボると、正解の隣で落ちる。" },
+  { q: "5回のテストの平均が92点。<br>最初の4回の平均は90点。5回目は何点？",
+    a: { t: "num", v: 100, unit: "点" }, tag: "🎯 合計にもどして考える", trap: "94",
+    k: "平均は、いったん【合計】にもどす。\n\n5回の合計＝92×5＝460\n4回の合計＝90×4＝360\n5回目＝460−360＝100点\n\nワナは『92と90の差2を、なんとなく足す』こと。\n平均どうしは、そのまま足したり引いたりできない。\n\n迷ったら合計。これが平均算の鉄則。" },
+  { q: "8%の食塩水300gに、水を100g加えた。<br>濃度は何%？",
+    a: { t: "num", v: 6, unit: "%" }, tag: "🎯 変わらないものを追う", trap: "8",
+    k: "水を加えても【食塩は1gも増えない】。\n\n食塩＝300×0.08＝24g（不変）\n全体＝300＋100＝400g\n24÷400＝0.06＝6%\n\nワナは、全体だけ増やして食塩も増やしてしまうこと。\n\n食塩水は『変わらないもの（食塩）』を先に丸で囲む。\nそれだけで、ほぼ事故らない。" },
+  { q: "1辺6cmの正方形の中に、ぴったり入る円がある。<br>正方形と円の面積の差は 何cm²？（円周率3.14）",
+    a: { t: "num", v: 7.74, unit: "cm²" }, tag: "🎯 最後まで計算しきる", trap: "28.26",
+    k: "円の半径は【3cm】（6ではない！）。\n\n正方形＝6×6＝36\n円＝3×3×3.14＝28.26\n差＝36−28.26＝7.74cm²\n\nワナは2つ。\n①直径6を半径として使う\n②円の面積を出したところで満足して、引き算を忘れる\n\n聞かれているのは【差】。最後の一手まで走りきる。" },
+  { q: "ある数を8でわるところを、まちがえて8をかけたら192になった。<br>正しい答えは？",
+    a: { t: "num", v: 3 }, tag: "🎯 もとの数にもどす", trap: "24",
+    k: "まず【もとの数】を出す。\n192÷8＝24 ← これは「ある数」であって、答えではない。\n\n正しくは、その24を8でわる。\n24÷8＝3。\n\nワナは、24を出したところで答えにしてしまうこと。\n\n『いま出したこの数は、何の数？』\n——これを毎回、心の中で言う。" },
+  { q: "A地点からB地点まで、行きは時速4km、帰りは時速6kmで往復した。<br>往復の平均の速さは 時速何km？",
+    a: { t: "num", v: 4.8, unit: "km" }, tag: "🎯 平均は足して2で割らない", trap: "5",
+    k: "（4＋6）÷2＝5 ……これがワナ。\n\n速さの平均は【距離÷時間】でしか出せない。\n距離を12kmとすると\n行き12÷4＝3時間、帰り12÷6＝2時間、計5時間\n往復24km÷5時間＝時速4.8km\n\n速さ・平均・割合は、\n『足して2で割る』が使えない代表格。" },
+  { q: "定価の2割引きで売っても、原価の1割の利益が出る品物。<br>定価は原価の何倍？",
+    a: { t: "frac", n: 11, d: 8 }, tag: "🎯 何を①にするか決める", trap: "1.2",
+    k: "原価を①とおく。\n\n売値＝原価×1.1＝1.1\n売値＝定価×0.8\nよって 定価×0.8＝1.1\n定価＝1.1÷0.8＝1.375＝11/8倍\n\nワナは、何を①にするか決めずに計算を始めること。\n\n売買算は【原価を①】。これを最初に紙に書く。\nそれだけで、迷子が消える。" },
+  { q: "3で割ると1余り、5で割ると3余る2けたの整数のうち、<br>いちばん小さい数は？",
+    a: { t: "num", v: 13 }, tag: "🎯 2けた という条件を見落とさない", trap: "8",
+    k: "条件を満たす数は 8、23、38…（15おき）。\n\nでも聞かれているのは【2けた】の中でいちばん小さい数。\n8は1けた。→ 23……ではなく、\n13は？ 13÷3＝4余り1 ✓、13÷5＝2余り3 ✓ → 13。\n\n答えの候補が出たら、\n『問題文の条件、ぜんぶ満たしてる？』と指さし確認。\n\n条件の見落としは、正答率の高い問題ほど起きる。" },
+  { q: "ノート3冊とペン2本で640円。ノート1冊はペン1本より30円高い。<br>ペン1本は 何円？",
+    a: { t: "num", v: 110, unit: "円" }, tag: "🎯 聞かれているのはどっち", trap: "140",
+    k: "ペンを①とすると、ノートは①＋30。\n（①＋30）×3＋①×2＝640\n⑤＋90＝640 → ⑤＝550 → ①＝110\n\nペン＝110円、ノート＝140円。\n\nワナは、ノートの140円を答えてしまうこと。\n計算は全部合っているのに、0点になる。\n\n問題文の【何を聞かれているか】に、線を引いてから解く。" },
+];
+const TSUME_INTRO = [
+  n => `${n}「🎯 今日は特別なトレーニングだ。\n\n名づけて【詰めの一歩】。\n\n……あのな、テストで落とす問題の半分は、\n『わからなかった問題』じゃない。\n\n『考え方は合ってたのに、最後の一歩でズレた問題』なんだ。\n\nそこだけを集めた。……いくぞ」`,
+  n => `${n}「🎯 詰めの一歩トレーニング、はじめる。\n\n今日やるのは、難しい問題じゃない。\n\n『みんなが正解できるのに、自分だけ落とす』——\nいちばん くやしいタイプの問題だ。\n\nワナの場所を、先に教える。\nそのうえで、引っかからずに解けるか。……勝負だ」`,
+  n => `${n}「🎯 いいか、よく聞け。\n\n正答率80%の問題を1問落とすのと、\n正答率20%の問題を1問落とすのは、\n意味がぜんぜん違う。\n\n前者は『取れたはずの点』だ。\n\n今日は、その『取れたはずの点』を、\nぜんぶ取りにいく」`,
+];
+function startTsume(done) {
+  DB.meta.tsumeSeen = DB.meta.tsumeSeen || [];
+  let avail = TSUME_QS.map((_, i) => i).filter(i => !DB.meta.tsumeSeen.includes(i));
+  if (!avail.length) { DB.meta.tsumeSeen = []; avail = TSUME_QS.map((_, i) => i); }
+  const qi = pick(avail);
+  DB.meta.tsumeSeen.push(qi);
+  G.tsumeLast = G.day; save();
+  const prob = TSUME_QS[qi];
+  const coach = ["shino", "masaki", "tsukasa", "yuma"].find(id => !CANDS[id] || G.alive.includes(id)) || "shino";
+  const cn = PERSON(coach).n;
+
+  const finishOK = (bonus) => {
+    G.fans += bonus; addStat("me", 6);
+    confetti(45); sfx.clear(); save();
+    showEvent({
+      c: coach,
+      t: `「……正解！ ワナを踏まなかったな。\n\nいまの『もう一回たしかめる3秒』——\nそれが、本番で20点を守る3秒だ。\n\n──📖 この問題のワナ──\n${prob.k}`,
+      ch: [{ t: "✨ 3秒の確認、習慣にする", fx: { cond: 1, st: { me: 2 } }, after: done }]
+    });
+  };
+  const finishNG = (myAns) => {
+    const trapped = String(myAns).replace(/[^0-9./]/g, "") === prob.trap;
+    showEvent({
+      c: coach,
+      t: trapped
+        ? `「……あー！ ワナに、はまったな。\n\n『${prob.trap}』——これ、いちばん多いまちがいだ。\n\nでも落ち込むな。\nここでハマっておけば、本番でハマらない。\n\n──📖 ワナの正体──\n${prob.k}`
+        : `「おしい！ ……でも、ここが大事なところだ。\n\nこの問題は『解けるかどうか』じゃなくて\n『最後まで気をぬかずに走れるか』の問題なんだ。\n\n──📖 考え方とワナ──\n${prob.k}`,
+      ch: [{ t: "🔥 もう一度、同じ問題に挑む", fx: {}, after: () => startQuiz({
+        mode: "lesson", genre: "kufuu", lv: 4, total: 1,
+        fixed: [{ ...prob, small: true, time: 180, genre: "kufuu" }],
+        title: "🎯 詰めの一歩・リベンジ",
+        onEnd: r2 => {
+          G.totalQ += r2.total; G.totalOK += r2.correct;
+          $("ovResult").classList.remove("on");
+          if (r2.correct) {
+            G.fans += 500; addStat("me", 7);
+            confetti(50); sfx.clear(); save();
+            showEvent({ c: coach,
+              t: "「取り返した！！\n\n……いいか、これがいちばん価値のある1問だ。\n\nワナを知って、避けられるようになった。\nこの問題は、もう二度ときみから点を奪えない。\n\n1問ぶんの『守り』を、手に入れたな」",
+              ch: [{ t: "🏆 二度と落とさない", fx: { cond: 1 }, after: done }] });
+          } else {
+            addStat("me", 5); save();
+            showEvent({ c: coach,
+              t: "「……くやしいな。おれもくやしい。\n\nでもな、今日ここでハマった経験は、\nテスト本番でハマらないための予防接種だ。\n\n『あ、これ見たことある』——\n本番でそう思えたら、今日の負けは勝ちに変わる」",
+              ch: [{ t: "💪 本番で思い出す", fx: { cond: 1 }, after: done }] });
+          }
+        }
+      }) }]
+    });
+  };
+
+  showEvent({
+    c: coach,
+    t: pick(TSUME_INTRO)(cn),
+    ch: [{ t: "🎯 やってみる", fx: {}, after: () => showEvent({
+      c: coach,
+      t: `⚠️ よくあるまちがい：「${prob.trap}」\n\n${cn}「……先に言っておく。\nこの問題、多くの人が『${prob.trap}』と答えてしまう。\n\nワナの場所は教えた。\nあとは、きみが引っかからずに解けるかどうかだ。\n\n……いけ！」`,
+      ch: [{ t: "⚔️ ワナを避けて解く", fx: {}, after: () => {
+        let myAns = "";
+        const origSubmit = window.submit;
+        startQuiz({
+          mode: "lesson", genre: "kufuu", lv: 4, total: 1,
+          fixed: [{ ...prob, small: true, time: 180, genre: "kufuu" }],
+          title: "🎯 詰めの一歩",
+          onEnd: r => {
+            G.totalQ += r.total; G.totalOK += r.correct;
+            $("ovResult").classList.remove("on");
+            if (r.correct) finishOK(1000); else finishNG(window.__lastAns || "");
+          }
+        });
       } }]
     }) }]
   });
@@ -2895,6 +3016,9 @@ function endDay() {
     G.renLast = G.day; save();
     return startRenBattle(() => afterDay());
   }
+  if (G.day >= 6 && G.day < TOTAL_D - 1 && (G.tsumeLast === undefined || G.day - G.tsumeLast >= 3) && Math.random() < .45) {
+    return startTsume(() => afterDay());
+  }
   if (G.day >= 7 && G.day < TOTAL_D - 1 && (G.natsuLast === undefined || G.day - G.natsuLast >= 2) && Math.random() < .5) {
     return startTokkun(() => afterDay());
   }
@@ -3218,7 +3342,7 @@ function tickQ() {
   if (left <= 0) return judge(false, true);
   Q.raf = requestAnimationFrame(tickQ);
 }
-function submit() { if (!Q.input) return; judge(MATH.check(Q.input, Q.cur.a), false); }
+function submit() { if (!Q.input) return; window.__lastAns = Q.input; judge(MATH.check(Q.input, Q.cur.a), false); }
 function judge(ok, timeout) {
   if (Q.lock) return;
   if (timeout) Q.timedOut = true;
