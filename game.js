@@ -924,7 +924,7 @@ const pickWeak = () => STATS.reduce((a, b) => G.st[a.k] <= G.st[b.k] ? a : b).k;
 
 /* ================= セーブ ================= */
 const KEY = "projectStage_v1";
-const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [], gstat: {}, epiSeen: [], dayEvSeen: {}, renWins: 0, renTotal: 0, oshiSeen: false, tsumeSeen: [] };
+const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [], gstat: {}, epiSeen: [], dayEvSeen: {}, renWins: 0, renTotal: 0, oshiSeen: false, tsumeSeen: [], titles: [], missionClears: 0 };
 let DB = { meta: { ...DEF_META }, run: null };
 try {
   const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
@@ -995,6 +995,7 @@ const pImg = (id, w, h) => `<img src="${PERSON(id).img}" alt="${PERSON(id).n}" s
 /* ================= タイトル ================= */
 function renderTitle() {
   $("tDp").textContent = DB.meta.dp;
+  $("tTitleLine").innerHTML = titleLine();
   $("tPlays").textContent = DB.meta.plays;
   $("btnCont").disabled = !DB.run;
   $("muteBtn").textContent = DB.meta.mute ? "🔇" : "🔊";
@@ -1153,6 +1154,7 @@ function renderMain() {
   $("mFans").textContent = G.fans.toLocaleString();
   $("mWarn").classList.toggle("hide", !G.warn);
 
+  renderMissions();
   $("mStats").innerHTML = STATS.map(s => {
     const v = Math.round(G.st[s.k]), rk = rank(v);
     return `<div class="strow"><span class="sn">${s.n}</span>
@@ -1357,11 +1359,16 @@ function finishLesson(cmd, r) {
   G.bestCombo = Math.max(G.bestCombo, r.best);
   const lvBefore = lessonLv();
   G.recentScores = (G.recentScores || []).concat(r.score).slice(-5);
+  ensureProg();
+  G.mProg.lessons++;
+  G.mProg.bestCorrect = Math.max(G.mProg.bestCorrect, r.correct);
+  if (r.correct === r.total) G.mProg.nomiss = true;
+  if (!G.mProg.genres.includes(cmd.g)) G.mProg.genres.push(cmd.g);
   const lvAfter = lessonLv();
   if (lvAfter > lvBefore) setTimeout(() => toast(`📈 問題のレベルが上がった！ Lv.${lvBefore} → Lv.${lvAfter}`), 900);
   else if (lvAfter < lvBefore) setTimeout(() => toast(`🌱 いったん基礎にもどろう　Lv.${lvBefore} → Lv.${lvAfter}`), 900);
   if (G.over && Math.random() < .35) G.cond = clamp(G.cond - 1, 0, 4);
-  showResult({ title: `${cmd.e} ${cmd.n}`, r, gains, fans, after: () => checkSkills(() => maybeAdvice(() => endDay())) });
+  showResult({ title: `${cmd.e} ${cmd.n}`, r, gains, fans, after: () => checkSkills(() => checkTitles(() => maybeAdvice(() => endDay()))) });
 }
 
 /* ================= くら寿司イベント（タクトと回転ずし） ================= */
@@ -2789,6 +2796,165 @@ function startSaison(done) {
 }
 
 /* ================= 応援ライン ================= */
+
+/* ================= 推しからの応援カットイン ================= */
+const OSHI_LINES = {
+  shino:  ["「……いま、きれいだった」", "「……数えてた。全部合ってる」", "「……その調子」", "「……ふふ、やるね」", "「……見てたよ」"],
+  takuto: ["「お、いいじゃん！」", "「お兄さん、うれしいよ」", "「その集中、プロだね」", "「あとで貝おごる」", "「うんうん、それでいい」"],
+  hara:   ["「ちゃぼす！！」", "「ナイスアタック！！」", "「おれのトス、決めた！」", "「熱いぞ！！」", "「筋肉が喜んでる！」"],
+  shuto:  ["「すげー！！」", "「兄ちゃん天才！」", "「おれも負けねー！」", "「いまの、動画撮りたかった」", "「かっこよすぎ！」"],
+  masaki: ["「……完璧です」", "「見てて、安心します」", "「僕も、がんばります」", "「すごく、きれいでした」", "「……尊敬します」"],
+  roi:    ["「センスあるじゃん」", "「おしゃれな解き方」", "「ロイ様も認めるわ」", "「いいね、その速さ」", "「決まったな」"],
+  noa:    ["「Nice〜」", "「Slow and steady」", "「いい音してる」", "「Beautiful」", "「きみのリズム、好き」"],
+  daigo:  ["「ようやった！」", "「兄ちゃん泣くで！」", "「それや！それ！」", "「完璧やんけ！」", "「天才か！」"],
+  yuma:   ["「……うそがない」", "「いい動きだ」", "「カウント、入ってるな」", "「……認める」", "「速い」"],
+  shion:  ["「……いい」", "「……見事」", "「……悪くない」", "「……続けろ」", "「……輝いてる」"],
+  ren:    ["「……やるじゃねえか」", "「まだ負けねえぞ」", "「その集中、本物だ」", "「……ちっ、速い」", "「いい勝負になってきた」"],
+  haru:   ["「ナイスー！」", "「いいよいいよ〜！」", "「さすが！」", "「止まらねえ！」", "「最高！」"],
+  kai:    ["「その調子だ」", "「いいリズムだ」", "「……本気だな」", "「見事だ」", "「上がってきたな」"],
+  sora:   ["「すごいすごい！」", "「ぼくの推し、最強！」", "「かっこいいです！」", "「ぼくも続きます！」", "「尊敬します！」"],
+};
+function oshiId() {
+  const alive = CAND_IDS.filter(id => G && G.alive.includes(id));
+  if (!alive.length) return null;
+  const top = alive.reduce((a, b) => (G.aff[a] || 0) >= (G.aff[b] || 0) ? a : b);
+  return (G.aff[top] || 0) >= 15 ? top : pick(alive);
+}
+let ocTimer = 0;
+function oshiCutIn(force) {
+  if (!G) return;
+  if (!force && Math.random() > .38) return;
+  const id = oshiId(); if (!id) return;
+  const lines = OSHI_LINES[id] || ["「いいね」"];
+  $("ocImg").src = CANDS[id].img;
+  $("ocName").textContent = CANDS[id].n;
+  $("ocLine").textContent = pick(lines);
+  const el = $("oshiCut");
+  el.classList.add("on");
+  clearTimeout(ocTimer);
+  ocTimer = setTimeout(() => el.classList.remove("on"), 1700);
+}
+
+/* ================= 今日の目標（デイリーミッション） ================= */
+const MISSION_POOL = {
+  A: [ /* 量・精度 */
+    { id: "ok6", e: "🎯", n: "1回の練習で6問以上正解", goal: 6, cur: p => p.bestCorrect },
+    { id: "q8", e: "✏️", n: "8問以上解く", goal: 8, cur: p => p.answered },
+    { id: "nomiss", e: "💎", n: "ノーミスで練習を終える", goal: 1, cur: p => p.nomiss ? 1 : 0 },
+  ],
+  B: [ /* 勢い */
+    { id: "combo5", e: "🔥", n: "5コンボを出す", goal: 5, cur: p => p.combo },
+    { id: "perfect2", e: "⚡", n: "PERFECT判定を2回", goal: 2, cur: p => p.perfect },
+    { id: "combo8", e: "🌋", n: "8コンボを出す", goal: 8, cur: p => p.combo },
+  ],
+  C: [ /* 生活・復習・ジャンル */
+    { id: "stam50", e: "💚", n: "体力50以上で1日を終える", goal: 1, cur: p => (G && G.stam >= 50) ? 1 : 0 },
+    { id: "rev1", e: "📖", n: "復習タイムで1問取り返す", goal: 1, cur: p => p.revenge },
+    { id: "genre", e: "🎲", n: "", goal: 1, cur: p => p.genres.includes(p.genreKey) ? 1 : 0 },
+  ],
+};
+function newDayProg(day) {
+  const pickOne = arr => arr[Math.floor(Math.random() * arr.length)];
+  const cmd = pick(CMDS);
+  const ms = [pickOne(MISSION_POOL.A), pickOne(MISSION_POOL.B), pickOne(MISSION_POOL.C)].map(m => {
+    const o = { id: m.id, e: m.e, n: m.n, goal: m.goal };
+    if (m.id === "genre") { o.n = `${cmd.e} ${cmd.n}をする`; o.genreKey = cmd.g; }
+    return o;
+  });
+  return { day, answered: 0, correct: 0, bestCorrect: 0, combo: 0, perfect: 0, nomiss: false, revenge: 0,
+           genres: [], lessons: 0, done: false, genreKey: ms.find(x => x.id === "genre") ? ms.find(x => x.id === "genre").genreKey : null, missions: ms };
+}
+function ensureProg() {
+  if (!G) return;
+  if (!G.mProg || G.mProg.day !== G.day) G.mProg = newDayProg(G.day);
+}
+function missionCur(m, p) {
+  const def = [...MISSION_POOL.A, ...MISSION_POOL.B, ...MISSION_POOL.C].find(x => x.id === m.id);
+  if (!def) return 0;
+  return Math.min(m.goal, def.cur(p));
+}
+function renderMissions() {
+  ensureProg();
+  let mm = $("mMission");
+  if (!mm) { mm = document.createElement("div"); mm.id = "mMission"; mm.className = "card mCard"; $("mCmds").parentNode.insertBefore(mm, $("mCmds")); }
+  const p = G.mProg;
+  const rows = p.missions.map(m => {
+    const c = missionCur(m, p), done = c >= m.goal;
+    return `<div class="mrow ${done ? "done" : ""}"><span class="me">${done ? "✅" : m.e}</span><span class="mn">${m.n}</span><span class="mp">${m.goal > 1 ? `${c}/${m.goal}` : (done ? "達成" : "—")}</span></div>`;
+  }).join("");
+  const nDone = p.missions.filter(m => missionCur(m, p) >= m.goal).length;
+  mm.innerHTML = `<div class="mh"><span>📋 今日の目標</span><b>${nDone} / 3</b></div>${rows}`;
+}
+/* 1日の終わりに目標を判定して「今日のまとめ」を出す */
+function showDaySummary(next) {
+  const p = G.mProg;
+  p.done = true;
+  const res = p.missions.map(m => ({ m, ok: missionCur(m, p) >= m.goal }));
+  const nDone = res.filter(x => x.ok).length;
+  let fans = nDone * 200, me = nDone;
+  const all = nDone === 3;
+  if (all) { fans += 600; G.cond = clamp(G.cond + 1, 0, 4); DB.meta.missionClears = (DB.meta.missionClears || 0) + 1; }
+  G.fans += fans; if (me) addStat("me", me);
+  save();
+  const id = oshiId();
+  const spk = all && id ? id : "kanade";
+  const oshiWord = all && id ? `\n\n${CANDS[id].n}${pick(OSHI_LINES[id] || ["「いいね」"])}\n「……今日の${G.name}、ぜんぶ見てた。……明日も、見てる」` : "";
+  const acc = p.answered ? Math.round(p.correct / p.answered * 100) : 0;
+  if (all) { confetti(50); sfx.clear(); }
+  showEvent({
+    c: spk,
+    t: `📋 今日のまとめ　DAY ${G.day}\n\n✏️ 解いた問題 ${p.answered}問（正解 ${p.correct}・${acc}%）\n🔥 最大コンボ ${p.combo}\n\n${res.map(x => `${x.ok ? "✅" : "▫️"} ${x.m.n}`).join("\n")}\n\n${all ? "🏆 目標コンプリート！！" : nDone ? `目標 ${nDone}/3 達成` : "今日は目標に届かなかった。……明日がある"}\n📈 注目度 +${fans.toLocaleString()}${me ? `　精神力 +${me}` : ""}${all ? "　調子アップ" : ""}${oshiWord}`,
+    ch: [{ t: all ? "🏆 明日も全部取る" : "▶ 明日へ", fx: {}, after: next }]
+  });
+}
+
+/* ================= 称号 ================= */
+const TITLES = [
+  { id: "t_first",   e: "🌱", n: "はじめの一歩",     d: "最初の1問を解いた",              chk: G => G.totalQ >= 1 },
+  { id: "t_q100",    e: "💯", n: "百問の男",         d: "通算100問",                       chk: G => G.totalQ >= 100 },
+  { id: "t_q300",    e: "📚", n: "三百問",           d: "通算300問",                       chk: G => G.totalQ >= 300 },
+  { id: "t_q500",    e: "🏔", n: "五百問の壁",       d: "通算500問",                       chk: G => G.totalQ >= 500 },
+  { id: "t_combo10", e: "🔟", n: "十連撃",           d: "10コンボ達成",                     chk: G => G.bestCombo >= 10 },
+  { id: "t_combo20", e: "⚡", n: "二十連撃",         d: "20コンボ達成",                     chk: G => G.bestCombo >= 20 },
+  { id: "t_pf1",     e: "💎", n: "初パーフェクト",   d: "ノーミス練習を1回",               chk: G => (G.perfectLesson || 0) >= 1 },
+  { id: "t_pf5",     e: "👑", n: "ノーミス王",       d: "ノーミス練習を5回",               chk: G => (G.perfectLesson || 0) >= 5 },
+  { id: "t_rev5",    e: "📖", n: "復習の鬼",         d: "リベンジ成功5回",                 chk: G => (G.revengeOK || 0) >= 5 },
+  { id: "t_rev15",   e: "🔁", n: "取り返す男",       d: "リベンジ成功15回",                chk: G => (G.revengeOK || 0) >= 15 },
+  { id: "t_aff80",   e: "💞", n: "推し一筋",         d: "だれかの好感度80以上",            chk: G => CAND_IDS.some(id => (G.aff[id] || 0) >= 80) },
+  { id: "t_affall",  e: "🤝", n: "みんなの人気者",   d: "生き残り全員の好感度30以上",       chk: G => G.alive.length >= 5 && G.alive.every(id => (G.aff[id] || 0) >= 30) },
+  { id: "t_fan10k",  e: "📣", n: "万人の注目",       d: "注目度10,000",                    chk: G => G.fans >= 10000 },
+  { id: "t_fan50k",  e: "🌟", n: "五万人",           d: "注目度50,000",                    chk: G => G.fans >= 50000 },
+  { id: "t_pass1",   e: "🎬", n: "一次突破",         d: "審査に1回合格",                   chk: G => G.auds.filter(a => a.pass).length >= 1 },
+  { id: "t_pass3",   e: "🥇", n: "三冠",             d: "審査に3回合格",                   chk: G => G.auds.filter(a => a.pass).length >= 3 },
+  { id: "t_top",     e: "🏆", n: "トップ通過",       d: "審査でトップ通過",                 chk: G => G.auds.some(a => a.tier === 2) },
+  { id: "t_skill5",  e: "✨", n: "才能開花",         d: "スキルを5つ習得",                  chk: G => G.skills.length >= 5 },
+  { id: "t_day15",   e: "⛳", n: "折り返し",         d: "DAY15に到達",                     chk: G => G.day >= 15 },
+  { id: "t_acc90",   e: "🎯", n: "精密機械",         d: "50問以上で正答率90%",             chk: G => G.totalQ >= 50 && G.totalOK / G.totalQ >= .9 },
+  { id: "t_ms3",     e: "📋", n: "有言実行",         d: "今日の目標を3日コンプリート",      chk: () => (DB.meta.missionClears || 0) >= 3 },
+  { id: "t_ms10",    e: "🗓", n: "目標達成の達人",   d: "今日の目標を10日コンプリート",     chk: () => (DB.meta.missionClears || 0) >= 10 },
+  { id: "t_ren",     e: "⚔️", n: "レンに勝った男",   d: "レンとの対決に勝利",              chk: () => (DB.meta.renWins || 0) >= 1 },
+  { id: "t_plays3",  e: "🔄", n: "三度目の正直",     d: "3回目の挑戦",                     chk: () => (DB.meta.plays || 0) >= 2 },
+];
+function checkTitles(done) {
+  if (!G) return done();
+  DB.meta.titles = DB.meta.titles || [];
+  const got = TITLES.filter(t => !DB.meta.titles.includes(t.id) && t.chk(G));
+  if (!got.length) return done();
+  const t = got[0];
+  DB.meta.titles.push(t.id); save();
+  sfx.skill();
+  $("sfBox").innerHTML = `<div class="sfLabel">T I T L E　U N L O C K E D</div>
+    <div class="sfStar">${t.e}</div><div class="sfName">称号「${t.n}」</div><div class="sfDesc">${t.d}</div>`;
+  $("skillFlash").classList.add("on");
+  setTimeout(() => { $("skillFlash").classList.remove("on"); checkTitles(done); }, 2000);
+}
+function titleLine() {
+  const ts = (DB.meta.titles || []);
+  if (!ts.length) return "🏷 称号 0 / " + TITLES.length;
+  const last = TITLES.find(t => t.id === ts[ts.length - 1]);
+  return `🏷 称号 <b>${ts.length}</b> / ${TITLES.length}　最新「<b>${last ? last.e + " " + last.n : ""}</b>」`;
+}
+
 function cheerLine() {
   const hot = Q && Q.combo >= 6;
   const candLines = hot ? [
@@ -2906,6 +3072,7 @@ function startRevenge(misses, done) {
           if (r.correct === 1) {
             if (G) {
               G.revengeOK = (G.revengeOK || 0) + 1;
+              if (G.mProg) G.mProg.revenge++;
               addStat("me", 2);
               const cm = CMDS.find(c => c.g === m.genre);
               if (cm) addStat(cm.main, 2);
@@ -2973,6 +3140,7 @@ const FANMILE_EV = {
 };
 function endDay(skipStudy) {
   G.milesSeen = G.milesSeen || []; G.fanMilesSeen = G.fanMilesSeen || [];
+  if (!skipStudy && G.mProg && G.mProg.day === G.day && G.mProg.lessons > 0 && !G.mProg.done) return showDaySummary(() => endDay(false));
   if (G.day === 22 && !G.concertDone) {
     G.concertDone = true; save();
     return startConcert(() => afterDay());
@@ -3366,6 +3534,7 @@ function submit() { if (!Q.input) return; window.__lastAns = Q.input; judge(MATH
 function judge(ok, timeout) {
   if (Q.lock) return;
   if (timeout) Q.timedOut = true;
+  if (G && G.mProg) G.mProg.answered++;
   /* ジャンル別の正答記録（弱点分析用） */
   const gk = (Q.cur && (Q.cur.genre || Q.genre)) || null;
   if (gk && MATH.GENRE_NAME[gk]) {
@@ -3387,6 +3556,13 @@ function judge(ok, timeout) {
     Q.combo++; Q.best = Math.max(Q.best, Q.combo);
     if (Q.combo >= 3) sc = Math.min(100, sc + Math.min(10, Q.combo));
     $("qInput").className = "ok";
+    /* 今日の目標のトラッキング／推しカットイン */
+    if (G && G.mProg) {
+      G.mProg.correct++;
+      G.mProg.combo = Math.max(G.mProg.combo, Q.combo);
+      if (label === "PERFECT!") G.mProg.perfect++;
+    }
+    if (label === "PERFECT!" || Q.combo === 5 || Q.combo === 8 || Q.combo === 12) oshiCutIn(Q.combo === 5 || Q.combo === 8);
   } else {
     if (Q.shield > 0) { Q.shield--; label = "SAVE!"; color = "#8b7bff"; }
     else { Q.combo = 0; label = timeout ? "TIME UP…おしい！" : "MISS"; color = "#e63946"; }
@@ -4120,7 +4296,13 @@ function openZukan() {
       const has = DB.meta.skills.includes(s.id);
       return `<div class="item ${has ? "" : "lock"}"><span class="ie">${has ? s.e : "？"}</span>
         <div class="it"><b>${has ? s.n : "？？？"}</b><small>${has ? s.d : condText(s)}</small></div></div>`;
-    }).join("")}</div><div class="smallnote">${DB.meta.skills.length} / ${SKILLS.length} 種 コンプリート</div>`;
+    }).join("")}</div><div class="smallnote">${DB.meta.skills.length} / ${SKILLS.length} 種 コンプリート</div>
+    <div class="divider"></div><div class="lbl" style="margin:6px 0 8px">🏷 称号</div>
+    <div class="list">${TITLES.map(t => {
+      const has = (DB.meta.titles || []).includes(t.id);
+      return `<div class="item ${has ? "" : "lock"}"><span class="ie">${has ? t.e : "？"}</span>
+        <div class="it"><b>${has ? t.n : "？？？"}</b><small>${t.d}</small></div></div>`;
+    }).join("")}</div><div class="smallnote">${(DB.meta.titles || []).length} / ${TITLES.length} 種</div>`;
   } else if (zTab === 4) {
     body = `<div class="list">${OUTFITS.map(o => {
       const has = DB.meta.outfits.includes(o.id);
