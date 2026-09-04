@@ -93,6 +93,17 @@ input{font-family:inherit;font-weight:800}
 .tp .tpe{font-size:22px}
 .tp b{font-size:13.5px;display:block}
 .tp small{font-size:10.5px;color:var(--ink2);font-weight:700}
+.routeRow{display:grid;grid-template-columns:1fr;gap:7px}
+.rt{background:var(--card);border-radius:8px;padding:10px 12px;text-align:left;display:flex;gap:10px;align-items:flex-start;color:var(--ink)}
+.rt.on{box-shadow:0 0 0 1.5px var(--gold) inset;background:#1c1a24}
+.rt .rte{font-size:22px;flex:0 0 auto;margin-top:2px}
+.rt b{font-size:13px;display:flex;gap:8px;align-items:baseline}
+.rt b i{font-style:normal;font-size:8.5px;letter-spacing:.18em;color:var(--ink3)}
+.rt small{font-size:10px;color:var(--ink2);font-weight:700;display:block;line-height:1.55;margin-top:2px}
+.cmd.route{background:#151a26;box-shadow:0 0 0 1px var(--gold) inset}
+body[data-route="wild"]{--gold:#8ad4ff;--goldD:#5aa8dc;--red:#3b9fe0;--redD:#2a6fa8;--bg:#070a12;--card:#111624}
+body[data-route="team"]{--gold:#ffb347;--goldD:#d98f2b;--red:#ff7a3d;--redD:#c2542a;--bg:#0f0a08;--card:#1c1410}
+body[data-route="duo"]{--gold:#ffa3c7;--goldD:#d97aa0;--red:#ff5e9e;--redD:#c23a72;--bg:#100a10;--card:#1c1219}
 
 /* ===== main ===== */
 #mHead{padding:calc(10px + env(safe-area-inset-top)) 14px 8px;display:flex;justify-content:space-between;align-items:center;z-index:2}
@@ -419,6 +430,8 @@ input{font-family:inherit;font-weight:800}
   <div class="pickRow" id="avPick"></div>
   <div class="secT">TYPE</div>
   <div class="typeRow" id="typePick"></div>
+  <div class="secT">STORY　<span style="color:var(--gold);font-size:9px">NEW</span></div>
+  <div class="routeRow" id="routePick"></div>
   <div style="height:16px"></div>
   <button class="btn" id="btnStart">審査会場へ向かう</button>
   <button class="btn dark" id="btnBackTitle" style="margin-top:8px">もどる</button>
@@ -498,7 +511,8 @@ input{font-family:inherit;font-weight:800}
 <div class="ov" id="ovSheet"><div class="panel" id="sheetPanel"></div></div>
 <div id="skillFlash"><div class="sfBox" id="sfBox"></div></div>
 
-<script src="math.js"></script>
-<script src="game.js"></script>
+<script src="math.js?v=r1"></script>
+<script src="game.js?v=r1"></script>
+<script src="routes.js?v=r1"></script>
 </body>
 </html>

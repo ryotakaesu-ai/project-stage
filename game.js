@@ -924,7 +924,7 @@ const pickWeak = () => STATS.reduce((a, b) => G.st[a.k] <= G.st[b.k] ? a : b).k;
 
 /* ================= セーブ ================= */
 const KEY = "projectStage_v1";
-const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [], gstat: {}, epiSeen: [], dayEvSeen: {}, renWins: 0, renTotal: 0, oshiSeen: false, tsumeSeen: [], titles: [], missionClears: 0 };
+const DEF_META = { dp: 0, plays: 0, hall: [], skills: [], best: {}, outfits: [], up: { st: 0, stam: 0, eff: 0, fan: 0, aff: 0 }, mute: false, evseen: [], gstat: {}, epiSeen: [], dayEvSeen: {}, renWins: 0, renTotal: 0, oshiSeen: false, tsumeSeen: [], titles: [], missionClears: 0, routeClears: {} };
 let DB = { meta: { ...DEF_META }, run: null };
 try {
   const raw = JSON.parse(localStorage.getItem(KEY) || "{}");
@@ -994,6 +994,7 @@ const pImg = (id, w, h) => `<img src="${PERSON(id).img}" alt="${PERSON(id).n}" s
 
 /* ================= タイトル ================= */
 function renderTitle() {
+  document.body.dataset.route = "normal";
   $("tDp").textContent = DB.meta.dp;
   $("tTitleLine").innerHTML = titleLine();
   $("tPlays").textContent = DB.meta.plays;
@@ -1028,6 +1029,8 @@ $("btnCont").onclick = () => {
   G.nichiUsed = G.nichiUsed || []; G.nichiSceneUsed = G.nichiSceneUsed || []; G.sapixSceneUsed = G.sapixSceneUsed || []; G.visitCount = G.visitCount || 0;
   G.liveDone = G.liveDone || false; G.concertDone = G.concertDone || false; G.qboxUsed = G.qboxUsed || []; G.natsuDone = G.natsuDone || false;
   G.tokkunCount = G.tokkunCount || 0; G.tsumeCount = G.tsumeCount || 0; G.visitCount = G.visitCount || 0;
+  G.route = G.route || "normal"; G.routeSeen = G.routeSeen || [];
+  if (G.team) G.campInit = true;
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
@@ -1070,8 +1073,14 @@ function openHelp() {
 }
 
 /* ================= キャラメイク ================= */
-let CR = { av: 0, type: 3 };
+let CR = { av: 0, type: 3, route: "normal" };
 function renderCreate() {
+  const rp = $("routePick");
+  if (rp) {
+    rp.innerHTML = ROUTES.map(r => `<button class="rt ${r.id === CR.route ? "on" : ""}" data-r="${r.id}">
+      <span class="rte">${r.e}</span><span><b>${r.n}<i>${r.sub}</i></b><small>${r.d}</small></span></button>`).join("");
+    rp.querySelectorAll(".rt").forEach(b => b.onclick = () => { CR.route = b.dataset.r; sfx.tap(); renderCreate(); });
+  }
   $("avPick").innerHTML = AVATARS.map((a, i) =>
     `<button class="pk ${i === CR.av ? "on" : ""}" data-i="${i}"><img src="${a.img}" alt=""></button>`).join("");
   $("typePick").innerHTML = TYPES.map((t, i) =>
@@ -1099,9 +1108,12 @@ $("btnStart").onclick = () => {
     talent: Object.fromEntries(CAND_IDS.map(id => [id, ri(-6, 6)])), usedExits: [], hinoUsed: {}, hinoSceneUsed: [], nichiUsed: [], nichiSceneUsed: [], sapixSceneUsed: [], visitCount: 0, liveDone: false, concertDone: false, qboxUsed: [], natsuDone: false, tokkunCount: 0, tsumeCount: 0,
     song: null, solo: null, leader: null, lastRank: 0, fixedSeen: [], extraTried: false, revengeOK: 0, milesSeen: [], fanMilesSeen: [], sushiDone: false, saisonDone: false, recentScores: [],
     auds: [], totalQ: 0, totalOK: 0, evseen: [], done: false,
+    route: CR.route || "normal",
   };
+  routeInit(G);
   DB.run = G; save(); sfx.clear();
   renderMain();
+  if (G.route !== "normal") return setTimeout(() => routeOpening(name, () => renderMain()), 400);
   setTimeout(() => showEvent({
     c: "tsukasa",
     t: pick(OPENING_FUMA)(esc(name)),
@@ -1118,7 +1130,7 @@ $("btnStart").onclick = () => {
 };
 
 /* ================= メイン ================= */
-function nextAud() { return AUDS.find(a => a.d >= G.day); }
+function nextAud() { return routeAud(AUDS.find(a => a.d >= G.day)); }
 const inCamp = () => G.day >= CAMP[0] && G.day <= CAMP[1];
 function statMult(key) { const t = TYPES[G.type]; return (t.boost && t.boost[key]) || 1; }
 function skillFx() {
@@ -1135,7 +1147,8 @@ function renderMain() {
   if (!G) return renderTitle();
   const a = nextAud();
   $("mDay").textContent = G.day;
-  $("mPhase").textContent = PHASE(G.day);
+  $("mPhase").textContent = routePhase(G.day) || PHASE(G.day);
+  document.body.dataset.route = G.route || "normal";
   const songTag = inCamp() && G.song ? `<div class="camp">合宿中　課題曲『${SONGS.find(x => x.id === G.song).n}』</div>` : (inCamp() ? `<div class="camp">強化合宿中</div>` : "");
   const rankTag = G.lastRank ? `<div style="font-size:9.5px;color:var(--ink3);margin-top:2px">前回審査 <b style="color:var(--gold)">${G.lastRank}位</b>/${G.lastRankOf || "?"}人</div>` : "";
   $("mNext").innerHTML = a
@@ -1177,7 +1190,8 @@ function renderMain() {
         <span class="cost" style="${low ? "color:#e63946" : ""}">体力 −${cost}</span></span></button>`;
     }).join("") +
       (inCamp() && G.team ? `<button class="cmd team wide" data-c="teamp"><span class="ce">🎬</span>
-        <span><b>チーム練習${G.song ? `『${SONGS.find(x => x.id === G.song).n}』` : ""}</b><small>${G.team.map(i => CANDS[i].n).join("・")} と課題曲を合わせる${G.leader === "me" ? "（リーダー）" : ""}　体力 −34</small></span></button>` : "") +
+        <span><b>チーム練習${G.song ? `『${SONGS.find(x => x.id === G.song).n}』` : ""}</b><small>${G.team.filter(i => G.alive.includes(i)).map(i => CANDS[i].n).join("・")} と課題曲を合わせる${G.leader === "me" ? "（リーダー）" : ""}　体力 −34</small></span></button>` : "") +
+      routeCmdHtml() +
       `<button class="cmd rest" data-c="rest"><span class="ce">😴</span><span><b>休養</b><small>体力を大きく回復</small></span></button>
        <button class="cmd talk" data-c="talk"><span class="ce">🤝</span><span><b>交流</b><small>候補生と話す</small></span></button>`;
   }
@@ -1227,7 +1241,10 @@ function doCmd(c) {
   if (c === "rest") return doRest();
   if (c === "talk") return openTalkSelect();
   if (c === "teamp") return doTeamPractice();
-  const cmd = CMDS.find(x => x.id === c);
+  if (c === "rcmd") return routeCmd();
+  let cmd = CMDS.find(x => x.id === c);
+  /* 自主トレは日替わりで新ジャンル（図形・規則性・速さ・単位換算）も混ざる */
+  if (cmd.id === "sk" && Math.random() < .5) { const g = pick(["zukei", "kisoku", "hayasa", "tani"]); cmd = { ...cmd, baseG: "kufuu", g, s: MATH.GENRE_NAME[g] }; }
   const fx = skillFx();
   const cost = Math.max(6, cmd.st + fx.st + (inCamp() ? 4 : 0));
   if (G.stam < cost) {
@@ -1293,7 +1310,7 @@ function doTeamPractice() {
       if (r.score >= 95 && r.correct === r.total) { G.pf[genre]++; G.perfectLesson++; }
       showResult({
         title: "🎬 チーム練習", r, gains, fans: 0,
-        extra: `<div class="smallnote">${G.team.map(i => CANDS[i].n).join("・")} の好感度 +8</div>`,
+        extra: `<div class="smallnote">${G.team.filter(i => G.alive.includes(i)).map(i => CANDS[i].n).join("・")} の好感度 +8</div>`,
         after: () => checkSkills(() => endDay()),
       });
     },
@@ -1364,6 +1381,7 @@ function finishLesson(cmd, r) {
   G.mProg.bestCorrect = Math.max(G.mProg.bestCorrect, r.correct);
   if (r.correct === r.total) G.mProg.nomiss = true;
   if (!G.mProg.genres.includes(cmd.g)) G.mProg.genres.push(cmd.g);
+  if (cmd.baseG && !G.mProg.genres.includes(cmd.baseG)) G.mProg.genres.push(cmd.baseG);
   const lvAfter = lessonLv();
   if (lvAfter > lvBefore) setTimeout(() => toast(`📈 問題のレベルが上がった！ Lv.${lvBefore} → Lv.${lvAfter}`), 900);
   else if (lvAfter < lvBefore) setTimeout(() => toast(`🌱 いったん基礎にもどろう　Lv.${lvBefore} → Lv.${lvAfter}`), 900);
@@ -3193,9 +3211,22 @@ function endDay(skipStudy) {
     const evc = CANDS[ev.c] && !G.alive.includes(ev.c) ? "kanade" : ev.c;
     return showEvent({ c: evc, t: `🏅 通算${mile}問 とっぱ！\n\n${ev.t}`, ch: [{ t: "▶", fx: { st: { me: 3 }, cond: 1 }, after: () => endDay() }] });
   }
+  /* ルート専用の日付イベント（敗者復活／ユニット／相棒） */
+  if (routeDayEvent(() => afterDay())) return;
+  /* ルート専用のランダムイベントは優先枠で出す（一般プールに埋もれないように） */
+  if (G.route && G.route !== "normal" && G.day < TOTAL_D && Math.random() < .5) {
+    const rp = EVENTS.filter(e => e.route === G.route && !G.evseen.includes(e.id) && (!CANDS[e.c] || G.alive.includes(e.c)));
+    if (rp.length) {
+      const e = pick(rp);
+      G.evseen.push(e.id);
+      if (!DB.meta.evseen.includes(e.id)) DB.meta.evseen.push(e.id);
+      if (e.c === "shino") G.shinoLast = G.day;
+      return showEvent({ c: e.c, t: e.t, ch: e.ch.map(c => ({ t: c.t, fx: c.fx, after: () => afterDay() })) });
+    }
+  }
   /* シノ保証枠：4日以上あいたら必ずシノイベント（脱落後はLINEで続く） */
   if (G.day - (G.shinoLast || 0) >= 5 && G.day < TOTAL_D) {
-    const sPool = EVENTS.filter(e => e.c === "shino" && !G.evseen.includes(e.id));
+    const sPool = EVENTS.filter(e => e.c === "shino" && !G.evseen.includes(e.id) && (!e.route || e.route === (G.route || "normal")));
     if (sPool.length) {
       const e = pick(sPool);
       G.evseen.push(e.id);
@@ -3247,8 +3278,8 @@ function endDay(skipStudy) {
       { t: "🌸 心に刻んだ", fx: { st: { me: 3 }, cond: 1 }, after: () => afterDay() },
     ] });
   }
-  if (Math.random() < .52 && G.day < TOTAL_D) {
-    const pool = EVENTS.filter(e => !G.evseen.includes(e.id) && (!CANDS[e.c] || G.alive.includes(e.c))
+  if (Math.random() < .62 && G.day < TOTAL_D) {
+    const pool = EVENTS.filter(e => !G.evseen.includes(e.id) && (!CANDS[e.c] || G.alive.includes(e.c)) && (!e.route || e.route === (G.route || "normal"))
       && (!e.need || Object.entries(e.need).every(([k, v]) => (G.aff[k] || 0) >= v)));
     if (pool.length) {
       const weighted = pool.flatMap(e => MAIN_CAST.has(e.c) ? [e, e, e] : [e]);
@@ -3273,7 +3304,12 @@ function afterDay() {
   if (G.day > TOTAL_D) return ending("time");
   save();
   /* 合宿入り */
-  if (G.day === CAMP[0] && !G.team) return campStart();
+  if (G.day === CAMP[0] && !G.campInit) {
+    G.campInit = true; save();
+    if (G.route === "team" && G.team) return teamCamp();
+    if (G.route === "duo") return duoCamp();
+    if (!G.team) return campStart();
+  }
   /* 固有ストーリーイベント */
   G.fixedSeen = G.fixedSeen || [];
   const fev = FIXED[G.day];
@@ -3357,8 +3393,9 @@ function campStart() {
     ch: [{ t: "チームを組む", fx: {}, after: () => pickTeam() }]
   });
 }
-function pickTeam() {
-  const sel = [];
+function pickTeam(pre) {
+  const sel = [...(pre || [])];
+  const locked = [...(pre || [])];
   const render = () => {
     openSheet(`<div class="ptitle">チームを組む<small>2人えらぶ。好感度が高いほどチーム力が上がる</small></div>
     <div class="list">${G.alive.map(id => {
@@ -3371,6 +3408,7 @@ function pickTeam() {
     <button class="btn" id="teamOk" ${sel.length === 2 ? "" : "disabled"}>このチームで行く</button>`);
     $("sheetPanel").querySelectorAll(".item").forEach(b => b.onclick = () => {
       const id = b.dataset.c;
+      if (locked.includes(id)) return;
       if (sel.includes(id)) sel.splice(sel.indexOf(id), 1);
       else if (sel.length < 2) sel.push(id);
       sfx.tap(); render();
@@ -3504,7 +3542,7 @@ function nextQ() {
   if (Q.fixed) { q = Q.fixed[Q.idx]; }
   else {
     let tries = 0;
-    do { q = MATH.gen(Q.mode === "aud" ? pick(Q.lv >= 4 ? ["pi", "frac", "ratio", "gyaku", "kufuu", "bun", "bun"] : ["pi", "frac", "ratio", "gyaku", "kufuu"]) : Q.genre, Q.lv); tries++; }
+    do { q = MATH.gen(Q.mode === "aud" ? pick(Q.lv >= 4 ? ["pi", "frac", "ratio", "gyaku", "kufuu", "bun", "bun", "zukei", "kisoku", "hayasa", "tani"] : Q.lv >= 3 ? ["pi", "frac", "ratio", "gyaku", "kufuu", "zukei", "tani"] : ["pi", "frac", "ratio", "gyaku", "kufuu"]) : Q.genre, Q.lv); tries++; }
     while (q.q === Q.lastQ && tries < 8);
   }
   Q.lastQ = q.q; Q.cur = q; Q.input = "";
@@ -3608,12 +3646,12 @@ function renderJudges(avg) {
   }).join("");
 }
 function startAudition() {
-  const a = nextAud(), idx = AUDS.indexOf(a);
-  const rivalLine = idx === 4
+  const a = nextAud(), idx = AUDS.findIndex(x => x.d === a.d);
+  const rivalLine = routePreAud(a, idx) || (idx === 4
     ? { c: "shino", t: "「……ここまで来たね。\n\n……最後だから、言う。\nきみと出会えて、よかった。\n\n……本気で来て。\n……ぼくも、ぜんぶ出すから」" }
     : G.alive.includes("hara")
     ? { c: "hara", t: "「ちゃぼすーー！！ 本番だな！！\n\n緊張してるか？ よし、深呼吸！ すって〜、はいて〜！\n\n……行ってこい！ おまえの全力、見せてやれ！！」" }
-    : { c: "takuto", t: "「本番だな。……大丈夫、いつも通りでいい。\nおまえの努力は、おれがいちばん知ってる。\n\n行ってこい」" };
+    : { c: "takuto", t: "「本番だな。……大丈夫、いつも通りでいい。\nおまえの努力は、おれがいちばん知ってる。\n\n行ってこい」" });
   const goQuiz = () => startQuiz({
     mode: "aud", lv: a.lv, total: a.q, title: `🎬 ${a.n}`,
     onEnd: r => finishAudition(a, idx, r)
@@ -3652,7 +3690,7 @@ function finishAudition(a, idx, r) {
   let teamB = 0, songB = 0, leadB = 0, soloB = 0;
   let songName = "", soloName = "";
   if (idx === 2 && G.team) {
-    teamB = Math.round(G.team.reduce((s, i) => s + G.aff[i], 0) / 20);
+    teamB = Math.round(G.team.filter(i => G.alive.includes(i)).reduce((s, i) => s + G.aff[i], 0) / 20);
     if (G.song) {
       const sg = SONGS.find(x => x.id === G.song);
       songB = clamp(Math.round((G.st[sg.k] - 50) * .15), 0, 8);
@@ -3668,24 +3706,27 @@ function finishAudition(a, idx, r) {
     soloName = sl.n;
     each.forEach(e => e.s += soloB);
   }
-  const finalTotal = total + teamB + songB + leadB + soloB;
-  /* 段階通過：期待枠 → 合格 → トップ通過 */
-  const hope = a.need - 16, top = a.need + 8;
-  const tier = finalTotal >= top ? 2 : finalTotal >= a.need ? 1 : finalTotal >= hope ? 0 : -1;
-  const pass = tier >= 0;
+  let finalTotal = total + teamB + songB + leadB + soloB;
 
   /* ライバルのスコア（周回ごとの才能ロール＋ゆらぎで毎回順位が変わる） */
-  const rivals = G.alive
+  const rivals = routeRivals(a, idx)
     .map(id => ({ id, n: CANDS[id].n, img: CANDS[id].img,
       s: (a.base[id] ?? a.need - 2) + ((G.talent && G.talent[id]) || 0) + ri(-6, 6) }));
   const board = [...rivals, { id: "me", n: G.name, img: AVATARS[G.av].img, s: finalTotal, me: true }]
     .sort((x, y) => y.s - x.s);
+  /* ルート補正（デュオ平均化／ユニット順位／地下組の注目度など） */
+  const adj = routeAudAdjust(a, idx, r, finalTotal, board);
+  finalTotal = adj.finalTotal;
+  /* 段階通過：期待枠 → 合格 → トップ通過 */
+  const hope = a.need - 16, top = a.need + 8;
+  const tier = finalTotal >= top ? 2 : finalTotal >= a.need ? 1 : finalTotal >= hope ? 0 : -1;
+  const pass = tier >= 0;
   const myRank = board.findIndex(b => b.me) + 1;
 
   G.totalQ += r.total; G.totalOK += r.correct;
   G.bestCombo = Math.max(G.bestCombo, r.best);
   const fanMul = tier === 2 ? 1.5 : tier === 1 ? 1 : tier === 0 ? .65 : .3;
-  const fans = Math.round(1200 * fanMul * (1 + idx * .6) * (1 + Math.max(0, finalTotal - hope) / 100) * (1 + fx.fan));
+  const fans = Math.round(1200 * fanMul * (adj.fanMul || 1) * (1 + idx * .6) * (1 + Math.max(0, finalTotal - hope) / 100) * (1 + fx.fan));
   G.fans += Math.max(0, fans);
   G.auds.push({ n: a.n, score: finalTotal, rank: myRank, pass, tier });
   G.lastRank = myRank; G.lastRankOf = board.length;
@@ -3708,6 +3749,7 @@ function finishAudition(a, idx, r) {
       ${songB ? `<div class="gain"><span>課題曲『${songName}』ボーナス</span><b>+${songB}</b></div>` : ""}
       ${leadB ? `<div class="gain"><span>リーダーとしてチームを牽引</span><b>+${leadB}</b></div>` : ""}
       ${soloB ? `<div class="gain"><span>ソロ構成「${soloName}」ボーナス</span><b>+${soloB}</b></div>` : ""}
+      ${adj.html || ""}
       <div class="gain"><span>計算パフォーマンス</span><b>${r.score}点 → 各審査員に40%反映</b></div>
       <div class="gain"><span>📈 注目度</span><b>+${Math.max(0, fans).toLocaleString()}</b></div>
     </div>
@@ -3719,16 +3761,17 @@ function finishAudition(a, idx, r) {
   $("ovResult").classList.add("on");
   $("resOk").onclick = () => {
     sfx.tap(); $("ovResult").classList.remove("on");
-    checkSkills(() => announce(a, idx, board, pass, tier));
+    checkSkills(() => announce(a, idx, board, pass, tier, adj.drops));
   };
 }
 
 /* ================= 合格者発表 ================= */
-function announce(a, idx, board, pass, tier) {
+function announce(a, idx, board, pass, tier, dropsOverride) {
   const isFinal = idx === 4;
-  /* 脱落者＝その審査で下位に沈んだライバル（毎回変わる）。シノは序盤（1次・2次）は脱落しない */
-  const drops = isFinal ? [] :
-    [...board].filter(b => !b.me && !(b.id === "shino" && idx < 2)).sort((x, y) => x.s - y.s).slice(0, a.dropN || 0).map(b => b.id);
+  const goOn = () => routeAfterAnnounce(idx, afterDay);
+  /* 脱落者＝その審査で下位に沈んだライバル（毎回変わる）。シノは序盤（1次・2次）と相棒編では脱落しない */
+  const drops = isFinal ? [] : dropsOverride ? dropsOverride.filter(id => G.alive.includes(id)) :
+    [...board].filter(b => !b.me && !(b.id === "shino" && (idx < 2 || G.route === "duo"))).sort((x, y) => x.s - y.s).slice(0, a.dropN || 0).map(b => b.id);
   show("scrAnn");
   $("annTitle").textContent = isFinal ? "最 終 結 果 発 表" : "合 格 者 発 表";
   $("annSub").innerHTML = "";
@@ -3794,11 +3837,12 @@ function announce(a, idx, board, pass, tier) {
       $("annBtn").onclick = () => {
         sfx.tap();
         if (isFinal) {
+          if (G.route === "duo" && !G.duoFinalDone) { G.duoFinalDone = true; save(); return duoFinal(board); }
           const myRank = board.findIndex(b => b.me) + 1;
           if (myRank >= 6 && !G.extraTried) return extraSlot(board);
           return ending("final", board);
         }
-        if (idx >= 2) G.team = null;   /* 合宿チームは3次審査で解散 */
+        if (idx >= 2 && G.route !== "team") G.team = null;   /* 合宿チームは3次審査で解散（ユニット編は routeAfterAnnounce で解体） */
         /* 崖っぷち判定 */
         if (!pass) {
           G.warnCount++;
@@ -3808,7 +3852,7 @@ function announce(a, idx, board, pass, tier) {
         } else { G.warn = false; }
         if (drops.length) {
           const doDrop = k => {
-            if (k >= drops.length) return afterDay();
+            if (k >= drops.length) return goOn();
             const d = drops[k];
             G.alive = G.alive.filter(x => x !== d);
             /* 脱落ドラマをランダム抽選（1周内で同じ展開は出ない） */
@@ -3820,7 +3864,7 @@ function announce(a, idx, board, pass, tier) {
           };
           return doDrop(0);
         }
-        afterDay();
+        goOn();
       };
     }
   }
@@ -4105,6 +4149,8 @@ function ending(kind, board) {
       text = `届かなかった。\n\n実力が足りなかった。それだけだ。\n\nでも、悔しさの正体はもうわかっている。\nそれは、次に進むための材料だ。`; }
   }
 
+  const ro = routeEndingText(kind, rk, board);
+  if (ro) { if (ro.rk) rk = ro.rk; if (ro.title) title = ro.title; if (ro.text) text = ro.text; }
   const aliveChars = CAND_IDS.filter(id => G.aff[id] > 0);
   const topChar = aliveChars.length ? aliveChars.reduce((a, b) => G.aff[a] >= G.aff[b] ? a : b) : null;
   const bond = topChar && G.aff[topChar] >= 45 ? `<div style="margin-top:12px;display:flex;gap:11px;align-items:center;background:#0e0e16;border-radius:8px;padding:11px;box-shadow:0 0 0 1px var(--line) inset">
@@ -4114,8 +4160,14 @@ function ending(kind, board) {
   const point = stTotal / 5 + (board ? board.find(b => b.me).s : 40) + G.auds.filter(a => a.pass).length * 6;
   const dp = Math.round(point / 3 + G.fans / 800 + G.pf.pi + G.pf.frac + G.pf.ratio + G.pf.gyaku + G.pf.kufuu);
   DB.meta.dp += dp; DB.meta.plays++;
+  if (rk === "S" || rk === "A" || rk === "B+") {
+    DB.meta.routeClears = DB.meta.routeClears || {};
+    const rkey = G.route || "normal";
+    DB.meta.routeClears[rkey] = (DB.meta.routeClears[rkey] || 0) + 1;
+    if (rkey === "duo" && (kind === "duoExtra" || (kind === "final" && G.duoResult === "both"))) DB.meta.routeClears.duoBoth = (DB.meta.routeClears.duoBoth || 0) + 1;
+  }
   DB.meta.hall.unshift({
-    name: G.name, av: G.av, rank: rk, title, fans: G.fans, skills: G.skills.length,
+    name: G.name, av: G.av, rank: rk, title, fans: G.fans, skills: G.skills.length, route: G.route || "normal",
     acc: G.totalQ ? Math.round(G.totalOK / G.totalQ * 100) : 0, st: { ...G.st },
   });
   DB.meta.hall = DB.meta.hall.slice(0, 12);
@@ -4146,8 +4198,7 @@ function ending(kind, board) {
     sfx.tap();
     const debut = rk === "S" || rk === "A" || rk === "B+";
     const fin = () => { G = null; renderTitle(); };
-    if (debut) return playEpilogue(rk, fin);
-    fin();
+    checkTitles(() => { if (debut) return playEpilogue(rk, fin); fin(); });
   };
 }
 function bondEndText(id, rk) {

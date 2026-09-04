@@ -372,10 +372,154 @@ function gBun(lv) {
   return { q: `${n}回のテストの平均は ${avg}点。<br>はじめの${n - 1}回の合計は ${avg * n - last}点。<br>最後の1回は 何点？`, a: num(last, "点"), tag: "平均", small: true, note: "合計＝平均×回数 から引く" };
 }
 
-const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu, bun: gBun };
-const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫", bun: "一行題" };
-const BASE_TIME = { pi: 50, frac: 60, ratio: 65, gyaku: 60, kufuu: 60, bun: 140 };
-const TIME_STEP = { pi: 8, frac: 10, ratio: 10, gyaku: 10, kufuu: 10, bun: 15 };
+
+/* ===== 図形（面積・角度・体積） ===== */
+function gZukei(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    if (r < .4) { const a = ri(3, 12), b = ri(3, 12); return { q: `たて ${a}cm、よこ ${b}cm の長方形。<br>面積は 何cm²？`, a: num(a * b, "cm²"), tag: "長方形の面積", small: true, note: "たて×よこ" }; }
+    if (r < .7) { const a = ri(3, 25); return { q: `1辺 ${a}cm の正方形。<br>まわりの長さは 何cm？`, a: num(a * 4, "cm"), tag: "正方形のまわり", small: true, note: "1辺×4" }; }
+    const x = ri(30, 80), y = ri(30, 180 - x - 20); return { q: `三角形の2つの角が ${x}度 と ${y}度。<br>のこりの角は 何度？`, a: num(180 - x - y, "度"), tag: "三角形の内角", small: true, note: "3つの角の和は180度" };
+  }
+  if (lv === 2) {
+    if (r < .3) { const b = ri(4, 20), h = pick([4, 6, 8, 10, 12]); return { q: `底辺 ${b}cm、高さ ${h}cm の三角形。<br>面積は 何cm²？`, a: num(b * h / 2, "cm²"), tag: "三角形の面積", small: true, note: "底辺×高さ÷2" }; }
+    if (r < .55) { const b = ri(5, 20), h = ri(3, 12); return { q: `底辺 ${b}cm、高さ ${h}cm の平行四辺形。<br>面積は 何cm²？`, a: num(b * h, "cm²"), tag: "平行四辺形の面積", small: true, note: "底辺×高さ（÷2しない！）" }; }
+    if (r < .8) { const a = ri(2, 9); return { q: `1辺 ${a}cm の立方体。<br>体積は 何cm³？`, a: num(a ** 3, "cm³"), tag: "立方体の体積", small: true, note: "1辺×1辺×1辺" }; }
+    const top = pick([20, 30, 40, 50, 70, 80, 100, 120]); return { q: `二等辺三角形の頂角が ${top}度。<br>底角の1つは 何度？`, a: num((180 - top) / 2, "度"), tag: "二等辺三角形", small: true, note: "（180−頂角）÷2" };
+  }
+  if (lv === 3) {
+    if (r < .3) { const a = ri(3, 10), b = a + ri(2, 10), h = pick([4, 6, 8, 10]); return { q: `上底 ${a}cm、下底 ${b}cm、高さ ${h}cm の台形。<br>面積は 何cm²？`, a: num((a + b) * h / 2, "cm²"), tag: "台形の面積", small: true, note: "（上底＋下底）×高さ÷2" }; }
+    if (r < .55) { const d = pick([2, 3, 4, 5, 6, 8, 10, 12, 15, 20]); return { q: `半径 ${d / 2}cm の円。<br>円周は 何cm？（円周率3.14）`, a: num(d * 3.14, "cm"), tag: "円周", small: true, note: "直径×3.14。半径×2を忘れない" }; }
+    if (r < .8) { const a = ri(2, 9), b = ri(2, 9), c = ri(2, 12); return { q: `たて ${a}cm、よこ ${b}cm、高さ ${c}cm の直方体。<br>体積は 何cm³？`, a: num(a * b * c, "cm³"), tag: "直方体の体積", small: true, note: "たて×よこ×高さ" }; }
+    const x = ri(30, 80), y = ri(30, 80); return { q: `三角形の2つの内角が ${x}度 と ${y}度。<br>のこりの角の【外角】は 何度？`, a: num(x + y, "度"), tag: "三角形の外角", small: true, note: "外角＝となり合わない2つの内角の和" };
+  }
+  if (lv === 4) {
+    if (r < .3) { const rr = pick([2, 3, 4, 5, 6, 10, 20]); return { q: `半径 ${rr}cm の円。<br>面積は 何cm²？（円周率3.14）`, a: num(rr * rr * 3.14, "cm²"), tag: "円の面積", small: true, note: "半径×半径×3.14" }; }
+    if (r < .55) { const d = pick([4, 6, 8, 10, 12, 20]); return { q: `直径 ${d}cm の半円。<br>まわりの長さは 何cm？（直線部分もふくむ）`, a: num(d * 3.14 / 2 + d, "cm"), tag: "半円のまわり", small: true, note: "曲線（直径×3.14÷2）＋直径。直線を忘れがち" }; }
+    if (r < .8) { const a = ri(4, 16), b = ri(4, 16); return { q: `対角線が ${a}cm と ${b}cm のひし形。<br>面積は 何cm²？`, a: num(a * b / 2, "cm²"), tag: "ひし形の面積", small: true, note: "対角線×対角線÷2" }; }
+    const x = ri(35, 145); return { q: `平行な2直線に1本の直線が交わる。<br>1つの角が ${x}度のとき、その【同位角】は 何度？`, a: num(x, "度"), tag: "平行線と角", small: true, note: "同位角・錯角は等しい。となりの角は180−x" };
+  }
+  if (r < .3) { const rr = pick([2, 3, 4, 6, 10]), deg = pick([90, 60, 45, 120, 180]); return { q: `半径 ${rr}cm、中心角 ${deg}度 のおうぎ形。<br>面積は 何cm²？（円周率3.14）`, a: num(rr * rr * 3.14 * deg / 360, "cm²"), tag: "おうぎ形の面積", small: true, note: "円の面積×中心角/360" }; }
+  if (r < .55) { const n = pick([5, 6, 8, 9, 10, 12]); return { q: `正${n}角形の1つの内角は 何度？`, a: num(180 * (n - 2) / n, "度"), tag: "正多角形の内角", small: true, note: "180×(n−2)÷n。外角は360÷n" }; }
+  if (r < .8) { const a = pick([4, 6, 8, 10, 20]); return { q: `1辺 ${a}cm の正方形に、ぴったり入る円をかいた。<br>正方形から円を引いた部分の面積は 何cm²？`, a: num(a * a - (a / 2) * (a / 2) * 3.14, "cm²"), tag: "正方形−円", small: true, note: "正方形の面積 − 半径(1辺÷2)の円" }; }
+  const n = pick([5, 6, 8, 10, 12]); return { q: `正${n}角形の1つの外角は 何度？`, a: num(360 / n, "度"), tag: "正多角形の外角", small: true, note: "外角の和はいつも360度" };
+}
+
+/* ===== 規則性（数列・周期・数表） ===== */
+function gKisoku(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    const a = ri(1, 9), d = ri(2, 7), n = ri(6, 20);
+    return { q: `${a}, ${a + d}, ${a + 2 * d}, ${a + 3 * d}, …と続く。<br>${n}番目の数は？`, a: num(a + (n - 1) * d), tag: "等差数列", small: true, note: `はじめの数＋公差×(${n}−1)` };
+  }
+  if (lv === 2) {
+    if (r < .5) { const n = ri(5, 12); return { q: `1, 3, 6, 10, 15, …と続く。<br>${n}番目の数は？`, a: num(n * (n + 1) / 2), tag: "三角数", small: true, note: "1から順に足していく。n×(n+1)÷2" }; }
+    const n = ri(4, 12); return { q: `碁石を正方形のわく（中は空）にならべる。<br>1辺が ${n}個のとき、碁石は全部で 何個？`, a: num(4 * (n - 1), "個"), tag: "方陣算", small: true, note: "(1辺−1)×4。角を2回数えない" };
+  }
+  if (lv === 3) {
+    if (r < .5) { const n = pick([10, 20, 25, 30, 40, 50, 100]); return { q: `1＋2＋3＋…＋${n} は？`, a: num(n * (n + 1) / 2), tag: "数列の和", small: true, note: "（はじめ＋おわり）×個数÷2" }; }
+    const a = ri(2, 9), d = pick([2, 3, 4, 5]), n = ri(6, 12); const last = a + (n - 1) * d;
+    return { q: `${a}, ${a + d}, ${a + 2 * d}, …, ${last}<br>（${n}個）の和は？`, a: num((a + last) * n / 2), tag: "数列の和", small: true, note: "（はじめ＋おわり）×個数÷2" };
+  }
+  if (lv === 4) {
+    if (r < .5) { const w = pick([5, 6, 7, 8, 9]), N = ri(30, 90); return { q: `1から順に、1行に ${w}個ずつ数をならべる。<br>${N} は 何行目？`, a: num(Math.ceil(N / w), "行目"), tag: "数表", small: true, note: `${N}÷${w} の商とあまり。あまりがあれば＋1` }; }
+    const n = ri(5, 9); let v = 1, d = 1; for (let i = 1; i < n; i++) { v += d; d++; }
+    return { q: `1, 2, 4, 7, 11, 16, …と続く。<br>${n}番目の数は？`, a: num(v), tag: "階差数列", small: true, note: "ふえ方が 1,2,3,4… とふえていく" };
+  }
+  if (r < .4) { const n = ri(6, 10); let a = 1, b = 1; for (let i = 2; i < n; i++) { const t = a + b; a = b; b = t; } return { q: `1, 1, 2, 3, 5, 8, …と続く。<br>${n}番目の数は？`, a: num(n <= 2 ? 1 : b), tag: "フィボナッチ", small: true, note: "前の2つの和" }; }
+  if (r < .7) { const base = pick([2, 3, 7, 8]), n = ri(10, 40); const cyc = { 2: [2, 4, 8, 6], 3: [3, 9, 7, 1], 7: [7, 9, 3, 1], 8: [8, 4, 2, 6] }[base]; return { q: `${base} を ${n}回かけた数の 一の位は？`, a: num(cyc[(n - 1) % 4]), tag: "一の位の周期", small: true, note: "一の位は4つごとにくり返す" }; }
+  const w = pick([6, 7, 8]), N = ri(40, 99); return { q: `1から順に、1行に ${w}個ずつ数をならべる。<br>${N} は 左から 何番目？`, a: num(((N - 1) % w) + 1, "番目"), tag: "数表", small: true, note: `${N}÷${w} のあまり（0なら右はし）` };
+}
+
+/* ===== 速さ ===== */
+function gHayasa(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    if (r < .5) { const v = pick([50, 60, 70, 80, 90]), t = ri(5, 30); return { q: `分速 ${v}m で ${t}分 歩いた。<br>進んだ道のりは 何m？`, a: num(v * t, "m"), tag: "速さ×時間", small: true, note: "道のり＝速さ×時間" }; }
+    const v = pick([50, 60, 75, 80]), t = ri(4, 20); return { q: `${v * t}m の道を 分速 ${v}m で歩くと 何分？`, a: num(t, "分"), tag: "道のり÷速さ", small: true, note: "時間＝道のり÷速さ" };
+  }
+  if (lv === 2) {
+    if (r < .5) { const k = pick([30, 36, 42, 48, 54, 60, 72, 90]); return { q: `時速 ${k}km は 分速 何m？`, a: num(k * 1000 / 60, "m"), tag: "速さの単位", small: true, note: "km→m は×1000、時→分 は÷60" }; }
+    const s = pick([5, 10, 15, 20, 25]); return { q: `秒速 ${s}m は 時速 何km？`, a: num(s * 3.6, "km"), tag: "速さの単位", small: true, note: "×3600 でm/時、÷1000 でkm" };
+  }
+  if (lv === 3) {
+    const a = pick([60, 70, 80]), b = pick([40, 50, 60]), t = ri(5, 20);
+    return { q: `${(a + b) * t}m はなれた2人が、同時に向かい合って歩き出す。<br>分速 ${a}m と 分速 ${b}m。出会うのは 何分後？`, a: num(t, "分後"), tag: "出会い算", small: true, note: "2人の速さの和で、道のりをちぢめる" };
+  }
+  if (lv === 4) {
+    const b = pick([50, 60, 70]), a = b + pick([10, 20, 30]), t = ri(4, 15);
+    return { q: `弟が分速 ${b}m で先に出発。${(a - b) * t}m はなれたところで<br>兄が分速 ${a}m で追いかけた。追いつくのは 何分後？`, a: num(t, "分後"), tag: "追いつき算", small: true, note: "速さの差で、はなれた分をつめる" };
+  }
+  if (r < .5) { const L = pick([100, 120, 150, 200]), B = pick([300, 400, 500, 600, 800]), v = pick([10, 20, 25, 30]); return { q: `長さ ${L}m の電車が 秒速 ${v}m で<br>長さ ${B}m の鉄橋をわたり切るのに 何秒？`, a: num((L + B) / v, "秒"), tag: "通過算", small: true, note: "電車の長さ＋橋の長さ を進む" }; }
+  const st = pick([12, 15, 18, 20]), fl = pick([2, 3, 4, 5]), t = ri(2, 6);
+  return Math.random() < .5
+    ? { q: `静水での速さが 時速 ${st}km の船。川の流れは 時速 ${fl}km。<br>${(st + fl) * t}km 下るのに 何時間？`, a: num(t, "時間"), tag: "流水算", small: true, note: "下り＝静水＋流れ" }
+    : { q: `静水での速さが 時速 ${st}km の船。川の流れは 時速 ${fl}km。<br>${(st - fl) * t}km 上るのに 何時間？`, a: num(t, "時間"), tag: "流水算", small: true, note: "上り＝静水−流れ" };
+}
+
+/* ===== 単位換算 ===== */
+function gTani(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    if (r < .5) { const m = ri(1, 9), c = pick([5, 20, 50, 75]); return { q: `${m}m ${c}cm は 何cm？`, a: num(m * 100 + c, "cm"), tag: "長さの単位", small: true, note: "1m＝100cm" }; }
+    const k = pick([1.5, 2.5, 3.2, 0.8, 4.6]); return { q: `${k * 1000}m は 何km？（小数で）`, a: num(k, "km"), tag: "長さの単位", small: true, note: "1km＝1000m" };
+  }
+  if (lv === 2) {
+    if (r < .35) { const k = pick([1.2, 2.5, 0.7, 3.4, 0.05]); return { q: `${k}kg は 何g？`, a: num(k * 1000, "g"), tag: "重さの単位", small: true, note: "1kg＝1000g" }; }
+    if (r < .7) { const l = pick([1.5, 2, 0.3, 4.2, 0.75]); return { q: `${l}L は 何mL？`, a: num(l * 1000, "mL"), tag: "かさの単位", small: true, note: "1L＝1000mL" }; }
+    const d = pick([30, 45, 12, 8, 150]); return { q: `${d}dL は 何L？（小数で）`, a: num(d / 10, "L"), tag: "かさの単位", small: true, note: "1L＝10dL" };
+  }
+  if (lv === 3) {
+    if (r < .35) { const m = pick([2, 3, 0.5, 1.5, 4]); return { q: `${m}m² は 何cm²？`, a: num(m * 10000, "cm²"), tag: "面積の単位", small: true, note: "1m²＝100cm×100cm＝10000cm²" }; }
+    if (r < .7) { const mn = pick([90, 150, 75, 45, 105]); return { q: `${mn}分 は 何時間？（小数で）`, a: num(mn / 60, "時間"), tag: "時間の単位", small: true, note: "÷60。0.5時間＝30分" }; }
+    const h = ri(1, 3), mn = pick([10, 20, 25, 40, 50]); return { q: `${h}時間${mn}分 は 何分？`, a: num(h * 60 + mn, "分"), tag: "時間の単位", small: true, note: "1時間＝60分" };
+  }
+  if (lv === 4) {
+    if (r < .35) { const h = pick([1, 2, 3, 0.5, 2.5]); return { q: `${h}ha は 何m²？`, a: num(h * 10000, "m²"), tag: "面積の単位", small: true, note: "1ha＝100m×100m＝10000m²" }; }
+    if (r < .7) { const a = pick([250, 150, 30, 480, 1200]); return { q: `${a}a は 何ha？（小数で）`, a: num(a / 100, "ha"), tag: "面積の単位", small: true, note: "1ha＝100a" }; }
+    const k = pick([1, 2, 0.5, 3, 0.25]); return { q: `${k}km² は 何ha？`, a: num(k * 100, "ha"), tag: "面積の単位", small: true, note: "1km²＝100ha" };
+  }
+  if (r < .35) { const m = pick([2, 3, 0.5, 1.5, 0.2]); return { q: `${m}m³ は 何L？`, a: num(m * 1000, "L"), tag: "体積の単位", small: true, note: "1m³＝1000L" }; }
+  if (r < .7) { const c = pick([500, 250, 1500, 800, 50]); return { q: `${c}cm³ は 何dL？（小数で）`, a: num(c / 100, "dL"), tag: "体積の単位", small: true, note: "1L＝1000cm³、1dL＝100cm³" }; }
+  const k = pick([36, 72, 54, 90, 108]); return { q: `時速 ${k}km は 秒速 何m？`, a: num(k * 1000 / 3600, "m"), tag: "速さの単位", small: true, note: "×1000÷3600。÷3.6 と同じ" };
+}
+
+/* ===== 暗算スプリント（短時間・大量） ===== */
+function gAnzan(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    if (r < .4) { const a = ri(11, 49), b = ri(11, 49); return { q: `${a} ＋ ${b}`, a: num(a + b), tag: "たし算" }; }
+    if (r < .7) { const a = ri(2, 9), b = ri(2, 9); return { q: `${a} × ${b}`, a: num(a * b), tag: "九九" }; }
+    const a = ri(20, 99), b = ri(2, 9); return { q: `${a} − ${b}`, a: num(a - b), tag: "ひき算" };
+  }
+  if (lv === 2) {
+    if (r < .35) { const a = ri(35, 89), b = ri(35, 89); return { q: `${a} ＋ ${b}`, a: num(a + b), tag: "くり上がり" }; }
+    if (r < .7) { const a = ri(12, 49), b = ri(3, 9); return { q: `${a} × ${b}`, a: num(a * b), tag: "2桁×1桁" }; }
+    const a = ri(120, 500), b = ri(35, 99); return { q: `${a} − ${b}`, a: num(a - b), tag: "3桁−2桁" };
+  }
+  if (lv === 3) {
+    if (r < .25) { const a = ri(12, 89); return { q: `${a} × 11`, a: num(a * 11), tag: "×11のワザ", note: "両はしをそのまま、真ん中に和" }; }
+    if (r < .5) { const a = pick([4, 8, 12, 16, 24, 32, 36, 44]); return { q: `${a} × 25`, a: num(a * 25), tag: "×25のワザ", note: "÷4 して ×100" }; }
+    if (r < .75) { const a = ri(11, 19); return { q: `${a} × ${a}`, a: num(a * a), tag: "平方数" }; }
+    const b = ri(3, 9), q = ri(11, 40); return { q: `${b * q} ÷ ${b}`, a: num(q), tag: "わり算" };
+  }
+  if (lv === 4) {
+    if (r < .25) { const a = ri(12, 89); return { q: `99 × ${a}`, a: num(99 * a), tag: "×99のワザ", note: "100倍から1回ひく" }; }
+    if (r < .5) { const a = ri(120, 899), b = ri(120, 899); return { q: `${a} ＋ ${b}`, a: num(a + b), tag: "3桁＋3桁" }; }
+    if (r < .75) { const a = ri(11, 19), b = ri(11, 19); return { q: `${a} × ${b}`, a: num(a * b), tag: "2桁×2桁", note: "(a+一の位)×10 ＋ 一の位どうしの積" }; }
+    const b = ri(3, 9), q = ri(41, 130); return { q: `${b * q} ÷ ${b}`, a: num(q), tag: "3桁÷1桁" };
+  }
+  if (r < .25) { const n = ri(2, 9); return { q: `3.14 × ${n}`, a: num(3.14 * n), tag: "3.14の暗記" }; }
+  if (r < .45) { const a = pick([15, 25, 35, 45, 55]); return { q: `${a} × ${a}`, a: num(a * a), tag: "5で終わる平方", note: "十の位×(十の位+1) のあとに 25" }; }
+  if (r < .65) { const a = ri(101, 999); return { q: `1000 − ${a}`, a: num(1000 - a), tag: "補数", note: "各位を9から、最後だけ10から" }; }
+  if (r < .85) { const a = pick([120, 240, 360, 480, 560, 640, 720, 880]); return { q: `${a} の 12.5%`, a: num(a / 8), tag: "12.5%＝1/8" }; }
+  const a = ri(3, 9) * 4 * ri(3, 12); return { q: `${a} ÷ 4`, a: num(a / 4), tag: "÷4", note: "半分の半分" };
+}
+
+const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu, bun: gBun, zukei: gZukei, kisoku: gKisoku, hayasa: gHayasa, tani: gTani, anzan: gAnzan };
+const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫", bun: "一行題", zukei: "図形", kisoku: "規則性", hayasa: "速さ", tani: "単位換算", anzan: "暗算スプリント" };
+const BASE_TIME = { pi: 50, frac: 60, ratio: 65, gyaku: 60, kufuu: 60, bun: 140, zukei: 75, kisoku: 80, hayasa: 90, tani: 45, anzan: 12 };
+const TIME_STEP = { pi: 8, frac: 10, ratio: 10, gyaku: 10, kufuu: 10, bun: 15, zukei: 12, kisoku: 12, hayasa: 15, tani: 5, anzan: 2 };
 
 /* ---------- 型レクチャー（まちがえた問題の解説） ---------- */
 const LECTURES = {
