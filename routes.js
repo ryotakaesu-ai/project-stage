@@ -149,8 +149,13 @@ function teamNaming(done) {
 }
 function teamCamp() {
   showEvent({ c: "tsukasa",
-    t: `「今日から6日間、強化合宿だ。\n3次審査はユニットの課題曲対決。\n\n『${esc(G.teamName)}』のキャプテンとして、曲を選べ。\nこの選択も、審査の対象だ」`,
-    ch: [{ t: "課題曲を選ぶ", fx: {}, after: () => pickSong() }] });
+    t: `「今日から6日間、タイプロハウスで共同生活だ。\n3次審査はユニットの課題曲対決。\n\n『${esc(G.teamName)}』のキャプテンとして、曲を選べ。\nこの選択も、審査の対象だ」`,
+    ch: [{ t: "▶", fx: {}, after: () => housePickProducer(() => {
+      /* ユニット編でもプロデューサー制（ハウス生活）を重ねる */
+      const [o1, o2] = otherProds();
+      G.hteams = { [G.prod]: G.teams.me, [o1]: G.teams.ren, [o2]: G.teams.shion }; save();
+      pickSong();
+    }) }] });
 }
 function duoCamp() {
   showEvent({ c: "kanade",
@@ -518,7 +523,7 @@ function routeDayEvent(done) {
   const sch = ROUTE_SCHED[curRoute()];
   if (!sch || !G || G.day >= TOTAL_D) return false;
   G.routeSeen = G.routeSeen || [];
-  const days = Object.keys(sch).map(Number).filter(d => d <= G.day && d > G.day - 4 && !G.routeSeen.includes(d)).sort((a, b) => a - b);
+  const days = Object.keys(sch).map(Number).filter(d => d <= G.day && d > G.day - 7 && !G.routeSeen.includes(d)).sort((a, b) => a - b);
   if (!days.length) return false;
   const d = days[0];
   G.routeSeen.push(d); save();

@@ -117,7 +117,7 @@ const OPENING_SOU = [
 ];
 
 const CAMP = [13, 18];   /* 合宿期間 */
-const PHASE = d => d <= 6 ? "1次審査まで" : d <= 12 ? "2次審査まで" : d <= 18 ? "強化合宿" : d <= 24 ? "4次審査まで" : "ファイナルまで";
+const PHASE = d => d <= 6 ? "1次審査まで" : d <= 12 ? "2次審査まで" : d <= 18 ? "タイプロハウス" : d <= 24 ? "4次審査まで" : "ファイナルまで";
 
 const CONDS = [
   { n: "絶不調", c: "#7b7b95", m: .70 },
@@ -1029,7 +1029,7 @@ $("btnCont").onclick = () => {
   G.nichiUsed = G.nichiUsed || []; G.nichiSceneUsed = G.nichiSceneUsed || []; G.sapixSceneUsed = G.sapixSceneUsed || []; G.visitCount = G.visitCount || 0;
   G.liveDone = G.liveDone || false; G.concertDone = G.concertDone || false; G.qboxUsed = G.qboxUsed || []; G.natsuDone = G.natsuDone || false;
   G.tokkunCount = G.tokkunCount || 0; G.tsumeCount = G.tsumeCount || 0; G.visitCount = G.visitCount || 0;
-  G.route = G.route || "normal"; G.routeSeen = G.routeSeen || [];
+  G.route = G.route || "normal"; G.routeSeen = G.routeSeen || []; G.houseSeen = G.houseSeen || [];
   if (G.team) G.campInit = true;
   renderMain();
 };
@@ -1149,7 +1149,7 @@ function renderMain() {
   $("mDay").textContent = G.day;
   $("mPhase").textContent = routePhase(G.day) || PHASE(G.day);
   document.body.dataset.route = G.route || "normal";
-  const songTag = inCamp() && G.song ? `<div class="camp">合宿中　課題曲『${SONGS.find(x => x.id === G.song).n}』</div>` : (inCamp() ? `<div class="camp">強化合宿中</div>` : "");
+  const songTag = inCamp() && G.song ? `<div class="camp">${G.prod ? houseTag() + "　" : "合宿中　"}課題曲『${SONGS.find(x => x.id === G.song).n}』</div>` : (inCamp() ? `<div class="camp">タイプロハウス 共同生活中</div>` : "");
   const rankTag = G.lastRank ? `<div style="font-size:9.5px;color:var(--ink3);margin-top:2px">前回審査 <b style="color:var(--gold)">${G.lastRank}位</b>/${G.lastRankOf || "?"}人</div>` : "";
   $("mNext").innerHTML = a
     ? (a.d === G.day ? `<b>本日 ${a.n}</b>` : `${a.n}まで <b>あと${a.d - G.day}日</b>`) + songTag + rankTag
@@ -3211,6 +3211,8 @@ function endDay(skipStudy) {
     const evc = CANDS[ev.c] && !G.alive.includes(ev.c) ? "kanade" : ev.c;
     return showEvent({ c: evc, t: `🏅 通算${mile}問 とっぱ！\n\n${ev.t}`, ch: [{ t: "▶", fx: { st: { me: 3 }, cond: 1 }, after: () => endDay() }] });
   }
+  /* タイプロハウス（DAY13〜17の共同生活イベント） */
+  if (houseDayEvent(() => afterDay())) return;
   /* ルート専用の日付イベント（敗者復活／ユニット／相棒） */
   if (routeDayEvent(() => afterDay())) return;
   /* ルート専用のランダムイベントは優先枠で出す（一般プールに埋もれないように） */
@@ -3307,8 +3309,7 @@ function afterDay() {
   if (G.day === CAMP[0] && !G.campInit) {
     G.campInit = true; save();
     if (G.route === "team" && G.team) return teamCamp();
-    if (G.route === "duo") return duoCamp();
-    if (!G.team) return campStart();
+    return houseStart();
   }
   /* 固有ストーリーイベント */
   G.fixedSeen = G.fixedSeen || [];
@@ -3427,19 +3428,26 @@ function pickTeam(pre) {
 }
 /* リーダー決め */
 function pickLeader() {
-  const [a, b] = G.team;
+  const tm = (G.team || []).filter(id => CANDS[id]);
+  const b = tm[tm.length - 1] || "kanade";
+  const after = () => { save(); if (G.prod && SONGS.find(x => x.id === G.song)) return houseLeaderDone(); pickSong(); };
   showEvent({
     c: b,
-    t: "「……で。このチーム、リーダーは誰がやる？」\n\n（3人の視線が交差する。誰が背負うかで、チームの形が決まる）",
+    t: `「……で。このチーム、リーダーは誰がやる？」\n\n（${tm.length + 1}人の視線が交差する。誰が背負うかで、チームの形が決まる）`,
     ch: [
       { t: "「おれがやる」", fx: { st: { me: 5, tk: 3 }, msg: "リーダーになった。責任と引きかえに、心が据わった" },
-        after: () => { G.leader = "me"; save(); pickSong(); } },
-      { t: `「${CANDS[a].n}に任せたい」`, fx: { aff: { [a]: 9 }, st: { me: 2 } },
-        after: () => { G.leader = a; save(); pickSong(); } },
-      { t: `「${CANDS[b].n}がいいと思う」`, fx: { aff: { [b]: 9 }, st: { me: 2 } },
-        after: () => { G.leader = b; save(); pickSong(); } },
+        after: () => { G.leader = "me"; after(); } },
+      ...tm.map(id => ({ t: `「${CANDS[id].n}に任せたい」`, fx: { aff: { [id]: 9 }, st: { me: 2 } },
+        after: () => { G.leader = id; after(); } })),
     ]
   });
+}
+function houseLeaderDone() {
+  const sg = SONGS.find(x => x.id === G.song);
+  const ldr = G.leader === "me" ? "きみ" : CANDS[G.leader].n;
+  showEvent({ c: G.prod,
+    t: `「課題曲は『${sg.n}』。リーダーは${ldr}。\n\n……20日ぶんの気持ちを、5日で仕上げる。\n今夜からタイプロハウスだ。荷物、まとめてこい」`,
+    ch: [{ t: "「はい！」", fx: { cond: 1 }, after: () => renderMain() }] });
 }
 /* 課題曲選び */
 function pickSong() {
@@ -3647,15 +3655,16 @@ function renderJudges(avg) {
 }
 function startAudition() {
   const a = nextAud(), idx = AUDS.findIndex(x => x.d === a.d);
-  const rivalLine = routePreAud(a, idx) || (idx === 4
+  const rivalLine = housePreAud(a, idx) || routePreAud(a, idx) || (idx === 4
     ? { c: "shino", t: "「……ここまで来たね。\n\n……最後だから、言う。\nきみと出会えて、よかった。\n\n……本気で来て。\n……ぼくも、ぜんぶ出すから」" }
     : G.alive.includes("hara")
     ? { c: "hara", t: "「ちゃぼすーー！！ 本番だな！！\n\n緊張してるか？ よし、深呼吸！ すって〜、はいて〜！\n\n……行ってこい！ おまえの全力、見せてやれ！！」" }
     : { c: "takuto", t: "「本番だな。……大丈夫、いつも通りでいい。\nおまえの努力は、おれがいちばん知ってる。\n\n行ってこい」" });
-  const goQuiz = () => startQuiz({
+  const goQuiz0 = () => startQuiz({
     mode: "aud", lv: a.lv, total: a.q, title: `🎬 ${a.n}`,
     onEnd: r => finishAudition(a, idx, r)
   });
+  const goQuiz = () => idx === 4 ? houseBalcony(goQuiz0) : goQuiz0();
   showEvent({
     c: rivalLine.c, t: rivalLine.t,
     ch: [{ t: "ステージへ", fx: {}, after: () => showEvent({
@@ -3717,6 +3726,8 @@ function finishAudition(a, idx, r) {
   /* ルート補正（デュオ平均化／ユニット順位／地下組の注目度など） */
   const adj = routeAudAdjust(a, idx, r, finalTotal, board);
   finalTotal = adj.finalTotal;
+  const hadj = houseAudAdjust(idx, finalTotal, board);
+  finalTotal = hadj.finalTotal;
   /* 段階通過：期待枠 → 合格 → トップ通過 */
   const hope = a.need - 16, top = a.need + 8;
   const tier = finalTotal >= top ? 2 : finalTotal >= a.need ? 1 : finalTotal >= hope ? 0 : -1;
@@ -3749,7 +3760,7 @@ function finishAudition(a, idx, r) {
       ${songB ? `<div class="gain"><span>課題曲『${songName}』ボーナス</span><b>+${songB}</b></div>` : ""}
       ${leadB ? `<div class="gain"><span>リーダーとしてチームを牽引</span><b>+${leadB}</b></div>` : ""}
       ${soloB ? `<div class="gain"><span>ソロ構成「${soloName}」ボーナス</span><b>+${soloB}</b></div>` : ""}
-      ${adj.html || ""}
+      ${adj.html || ""}${hadj.html || ""}
       <div class="gain"><span>計算パフォーマンス</span><b>${r.score}点 → 各審査員に40%反映</b></div>
       <div class="gain"><span>📈 注目度</span><b>+${Math.max(0, fans).toLocaleString()}</b></div>
     </div>
@@ -3768,7 +3779,7 @@ function finishAudition(a, idx, r) {
 /* ================= 合格者発表 ================= */
 function announce(a, idx, board, pass, tier, dropsOverride) {
   const isFinal = idx === 4;
-  const goOn = () => routeAfterAnnounce(idx, afterDay);
+  const goOn = () => houseAfterAnnounce(idx, () => routeAfterAnnounce(idx, afterDay));
   /* 脱落者＝その審査で下位に沈んだライバル（毎回変わる）。シノは序盤（1次・2次）と相棒編では脱落しない */
   const drops = isFinal ? [] : dropsOverride ? dropsOverride.filter(id => G.alive.includes(id)) :
     [...board].filter(b => !b.me && !(b.id === "shino" && (idx < 2 || G.route === "duo"))).sort((x, y) => x.s - y.s).slice(0, a.dropN || 0).map(b => b.id);
