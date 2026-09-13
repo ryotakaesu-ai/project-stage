@@ -74,7 +74,7 @@ function openIkusei() {
   const rest = IKUSEI_QS.map((_, i) => i).filter(i => !m.clear[i]);
   openSheet(`<div class="ptitle">📝 育成テスト復習<small>${IKUSEI_TITLE}　クリア ${cleared} / ${IKUSEI_QS.length}</small></div>
     <div class="gauge" style="margin-bottom:10px"><u style="width:${cleared / IKUSEI_QS.length * 100}%;background:var(--gold)"></u></div>
-    <button class="btn" id="ikAll">▶ 最初から通し（18問）</button>
+    <button class="btn" id="ikAll">▶ 18問をランダム順で通し</button>
     <div style="height:6px"></div>
     <button class="btn gold" id="ikRest" ${rest.length ? "" : "disabled"}>🎯 まだの問題だけ（${rest.length}問）</button>
     <div class="lbl" style="margin:14px 0 6px">1問えらぶ</div>
@@ -83,8 +83,9 @@ function openIkusei() {
       <div class="it"><b>大問${p.no}　${p.tag}</b><small>${p.q.replace(/<br>/g, " ").slice(0, 34)}…</small></div></button>`).join("")}</div>
     <div class="smallnote">1問3分。ミスしたら解説のあと5分でリベンジ。3分で足りなければ自動で延長。</div>
     <div style="height:8px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
-  $("ikAll").onclick = () => { sfx.tap(); closeSheet(); runIkusei(IKUSEI_QS.map((_, i) => i)); };
-  $("ikRest").onclick = () => { sfx.tap(); closeSheet(); runIkusei(rest); };
+  const shuf = a => a.slice().sort(() => Math.random() - .5);
+  $("ikAll").onclick = () => { sfx.tap(); closeSheet(); runIkusei(shuf(IKUSEI_QS.map((_, i) => i))); };
+  $("ikRest").onclick = () => { sfx.tap(); closeSheet(); runIkusei(shuf(rest)); };
   $("sheetPanel").querySelectorAll("[data-i]").forEach(b => b.onclick = () => { sfx.tap(); closeSheet(); runIkusei([+b.dataset.i]); });
 }
 function runIkusei(order) {

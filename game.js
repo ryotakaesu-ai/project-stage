@@ -1034,7 +1034,7 @@ $("btnCont").onclick = () => {
   renderMain();
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
-$("btnIkusei").onclick = () => { sfx.tap(); openIkusei(); };
+$("btnIkusei").onclick = () => { sfx.tap(); spinMenu(); };
 $("btnDream").onclick = () => { sfx.tap(); openDream(); };
 $("btnZukanT").onclick = () => { sfx.tap(); openZukan(); };
 $("btnHelp").onclick = () => { sfx.tap(); openHelp(); };
