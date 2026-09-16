@@ -90,10 +90,13 @@ function spTeach(i, done) {
   const runQ = (sec, onWin, onLose, onTimeout) => startQuiz({ mode: "lesson", genre: "bun", lv: 4, total: 1,
     fixed: [{ ...p, small: true, time: sec, genre: "bun" }], title: `📝 あかりに教える　大問${p.no}`,
     onEnd: r => { $("ovResult").classList.remove("on"); SP.q++; m.tries[i] = (m.tries[i] || 0) + 1; if (r.correct === 1) return onWin(); if (r.timedOut && onTimeout) return onTimeout(); onLose(); } });
-  const win = big => { SP.ok++; m.clear[i] = true; spGain(unit, big ? 24 : 14); SP.mood = clamp(SP.mood + (big ? 6 : 3), 0, 100); SP.trust += 3; spSave(); confetti(24); sfx.clear();
-    spEv(`${pick(AKARI_OK)}\n\nシノ「${spPoint(p)}」\n\n（${SP_UNITS[unit].e} ${SP_UNITS[unit].n} の理解度が上がった）`, [{ t: "▶", fx: {}, after: done }]); };
-  const lose = () => { SP.mood = clamp(SP.mood - 3, 0, 100); spGain(unit, 4); spSave();
-    spEv(`（……手が止まった。あかりが、こっちを見ている）\n\n${pick(AKARI_NG)}\n\nシノ「……ごめん、いま整理する。1回、解説を読ませて」`, [{ t: "📖 解説を読む", fx: {}, after: () => spEv(`──📖 解説──\n\n${p.k}\n\nシノ「……見えた。あかり、もう一回、いま説明しながら解くね」`, [{ t: "🔥 解き直す（5分）", fx: {}, after: () => runQ(300, () => { SP.rev++; win(false); }, () => { spGain(unit, 2); spSave(); spEv(`シノ「……今日はここまで。答えは【${MATH.ansText(p.a)}】。\nこの型、明日もう一回やろう。2回目は違う景色になるから」\n\nあかり「はい。……わたしも、家で解いてみます」`, [{ t: "▶", fx: {}, after: done }]); }) }]) }]); };
+  /* 深掘りのあとに理解度を反映：確認クイズの正答と類題で上乗せ */
+  const settle = (base, res) => { const bonus = res.checks * 2 + (res.simOk ? 8 : 0) + (res.revOk ? 6 : 0); spGain(unit, base + bonus); SP.mood = clamp(SP.mood + (res.simOk ? 5 : 2), 0, 100); SP.trust += 2 + res.checks; spSave();
+    spEv(`（${SP_UNITS[unit].e} ${SP_UNITS[unit].n} の理解度が上がった　＋${Math.round(base + bonus)}）\n\nあかり「${res.simOk ? "この型、もう自分で解けます！" : "……もう一回、家でやってみます"}」`, [{ t: "▶", fx: {}, after: done }]); };
+  const win = big => { SP.ok++; m.clear[i] = true; SP.mood = clamp(SP.mood + (big ? 4 : 2), 0, 100); spSave(); confetti(24); sfx.clear();
+    spEv(pick(AKARI_OK), [{ t: "▶ あかりに説明する（深掘り）", fx: {}, after: () => deepDive(i, { correct: true, mode: "teach" }, res => settle(big ? 14 : 8, res)) }]); };
+  const lose = () => { SP.mood = clamp(SP.mood - 2, 0, 100); spSave();
+    spEv(`（……手が止まった。あかりが、こっちを見ている）\n\n${pick(AKARI_NG)}\n\nシノ「……ごめん、いま整理する。一緒に、最初からたどろう」`, [{ t: "📖 一緒にたどる（深掘り）", fx: {}, after: () => deepDive(i, { correct: false, mode: "teach" }, res => { if (res.revOk) SP.ok++; settle(res.revOk ? 8 : 3, res); }) }]); };
   spEv(`📝 大問${p.no}【${p.tag}】\n\nあかり「これ、テスト範囲のやつです。……教えてください」\n\nシノ「よし。ぼくが先に解くから、手元を見てて。3分」`, [{ t: "▶ 解く", fx: {}, after: () => runQ(180, () => win(true), lose, () => spEv("シノ「……時間切れ。でも途中まで合ってる。あと3分だけ延長させて」", [{ t: "🔥 続ける", fx: {}, after: () => runQ(180, () => win(false), lose) }])) }]);
 }
 function spUnitPick() {

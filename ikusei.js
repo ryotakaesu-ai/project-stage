@@ -79,9 +79,9 @@ function openIkusei() {
     <button class="btn gold" id="ikRest" ${rest.length ? "" : "disabled"}>🎯 まだの問題だけ（${rest.length}問）</button>
     <div class="lbl" style="margin:14px 0 6px">1問えらぶ</div>
     <div class="list">${IKUSEI_QS.map((p, i) => `<button class="item" data-i="${i}">
-      <span class="ie">${m.clear[i] ? "✅" : (m.tries[i] ? "🔁" : "⬜")}</span>
+      <span class="ie">${m.clear[i] ? ((m.sim || {})[i] ? "🌟" : "✅") : (m.tries[i] ? "🔁" : "⬜")}</span>
       <div class="it"><b>大問${p.no}　${p.tag}</b><small>${p.q.replace(/<br>/g, " ").slice(0, 34)}…</small></div></button>`).join("")}</div>
-    <div class="smallnote">1問3分。ミスしたら解説のあと5分でリベンジ。3分で足りなければ自動で延長。</div>
+    <div class="smallnote">1問3分。解いたあとはシノと深掘りセッション（解き方の確認→手順クイズ→つまずき→類題→攻略メモ）。🌟＝類題までクリア。</div>
     <div style="height:8px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
   const shuf = a => a.slice().sort(() => Math.random() - .5);
   $("ikAll").onclick = () => { sfx.tap(); closeSheet(); runIkusei(shuf(IKUSEI_QS.map((_, i) => i))); };
@@ -90,7 +90,7 @@ function openIkusei() {
 }
 function runIkusei(order) {
   const m = ikMeta(); m.runs++; save();
-  let k = 0, okN = 0, revN = 0;
+  let k = 0, okN = 0, revN = 0, simN = 0;
   const coach = "shino";
   const runQ = (i, sec, onWin, onLose, onTimeout) => startQuiz({
     mode: "lesson", genre: "bun", lv: 4, total: 1,
@@ -110,19 +110,16 @@ function runIkusei(order) {
     const first = () => runQ(i, 180, win, lose, () => extend(i));
     showEvent({ c: coach, t: `📝 大問${IKUSEI_QS[i].no}【${IKUSEI_QS[i].tag}】\n\n「本番と同じ問題だ。3分。\n落ち着いて、式を書きながら。……いこう」`, ch: [{ t: "▶ 解く", fx: {}, after: first }] });
     function win() { m.clear[i] = true; okN++; save(); confetti(30); sfx.clear();
-      showEvent({ c: coach, t: `${pick(IK_PRAISE)}\n\n──ポイント──\n${IKUSEI_QS[i].k.split("\n\n").slice(-1)[0]}`, ch: [{ t: "▶ 次へ", fx: {}, after: next }] }); }
-    function lose() { showEvent({ c: coach, t: pick(IK_CHEER), ch: [{ t: "📖 解説を見る", fx: {}, after: () => kaisetsu(i) }] }); }
+      showEvent({ c: coach, t: pick(IK_PRAISE), ch: [{ t: "▶ 深掘りセッションへ", fx: {}, after: () => deepDive(i, { correct: true, mode: "coach" }, res => { if (res.simOk) simN++; next(); }) }] }); }
+    function lose() { showEvent({ c: coach, t: pick(IK_CHEER), ch: [{ t: "📖 一緒に解きほぐす", fx: {}, after: () => deepDive(i, { correct: false, mode: "coach" }, res => { if (res.revOk) { okN++; revN++; } if (res.simOk) simN++; next(); }) }] }); }
   };
-  const extend = i => showEvent({ c: coach, t: "「時間切れ。……でも、途中まで書けてたな。\nあと3分、延長する。いまの式の続きから」", ch: [{ t: "🔥 続ける", fx: {}, after: () => runQ(i, 180, () => { m.clear[i] = true; okN++; save(); confetti(30); sfx.clear(); showEvent({ c: coach, t: pick(IK_PRAISE), ch: [{ t: "▶ 次へ", fx: {}, after: next }] }); }, () => kaisetsu(i)) }] });
-  const kaisetsu = i => showEvent({ c: coach, t: `──📖 解説──\n\n${IKUSEI_QS[i].k}\n\n……道筋、見えた？\n同じ問題に、もう一度。今度は5分」`, ch: [{ t: "🔥 リベンジ", fx: {}, after: () => runQ(i, 300,
-      () => { m.clear[i] = true; okN++; revN++; save(); confetti(40); sfx.clear(); showEvent({ c: coach, t: pick(IK_REV_WIN), ch: [{ t: "▶ 次へ", fx: {}, after: next }] }); },
-      () => showEvent({ c: coach, t: `${pick(IK_REV_LOSE)}\n\n正解は【${MATH.ansText(IKUSEI_QS[i].a)}】`, ch: [{ t: "▶ 次へ", fx: {}, after: next }] })) }] });
+  const extend = i => showEvent({ c: coach, t: "「時間切れ。……でも、途中まで書けてたな。\nあと3分、延長する。いまの式の続きから」", ch: [{ t: "🔥 続ける", fx: {}, after: () => runQ(i, 180, () => { m.clear[i] = true; okN++; save(); confetti(30); sfx.clear(); showEvent({ c: coach, t: pick(IK_PRAISE), ch: [{ t: "▶ 深掘りセッションへ", fx: {}, after: () => deepDive(i, { correct: true, mode: "coach" }, res => { if (res.simOk) simN++; next(); }) }] }); }, () => showEvent({ c: coach, t: pick(IK_CHEER), ch: [{ t: "📖 一緒に解きほぐす", fx: {}, after: () => deepDive(i, { correct: false, mode: "coach" }, res => { if (res.revOk) { okN++; revN++; } if (res.simOk) simN++; next(); }) }] })) }] });
   const finish = () => {
     const cleared = IKUSEI_QS.filter((_, j) => m.clear[j]).length;
     const all = cleared === IKUSEI_QS.length;
     if (all) { confetti(80); sfx.clear(); }
     showEvent({ c: coach,
-      t: `📝 今日の復習、終了！\n\n解いた ${order.length}問　正解 ${okN}問${revN ? `（うちリベンジで取り返した ${revN}問）` : ""}\n通算クリア ${cleared} / ${IKUSEI_QS.length}\n\n${all ? "「……全問クリア。このテスト、もう怖くないな。\n次のテストは、ここで覚えた『型』が全部出る」" : okN === order.length ? "「全部正解。……本番でこれができれば、何も言うことはない」" : "「間違えた問題は、明日もう一回だけやろう。\n2回目は、ぜんぜん違う景色になってるから」"}`,
+      t: `📝 今日の復習、終了！\n\n解いた ${order.length}問　正解 ${okN}問${revN ? `（うちリベンジで取り返した ${revN}問）` : ""}　類題クリア ${simN}問\n通算クリア ${cleared} / ${IKUSEI_QS.length}\n\n${all ? "「……全問クリア。このテスト、もう怖くないな。\n次のテストは、ここで覚えた『型』が全部出る」" : okN === order.length ? "「全部正解。……本番でこれができれば、何も言うことはない」" : "「間違えた問題は、明日もう一回だけやろう。\n2回目は、ぜんぜん違う景色になってるから」"}`,
       ch: [{ t: "タイトルへ", fx: {}, after: () => { G = null; renderTitle(); } }] });
   };
   step();
