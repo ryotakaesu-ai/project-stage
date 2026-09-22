@@ -516,10 +516,75 @@ function gAnzan(lv) {
   const a = ri(3, 9) * 4 * ri(3, 12); return { q: `${a} ÷ 4`, a: num(a / 4), tag: "÷4", note: "半分の半分" };
 }
 
-const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu, bun: gBun, zukei: gZukei, kisoku: gKisoku, hayasa: gHayasa, tani: gTani, anzan: gAnzan };
-const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫", bun: "一行題", zukei: "図形", kisoku: "規則性", hayasa: "速さ", tani: "単位換算", anzan: "暗算スプリント" };
-const BASE_TIME = { pi: 50, frac: 60, ratio: 65, gyaku: 60, kufuu: 60, bun: 140, zukei: 75, kisoku: 80, hayasa: 90, tani: 45, anzan: 12 };
-const TIME_STEP = { pi: 8, frac: 10, ratio: 10, gyaku: 10, kufuu: 10, bun: 15, zukei: 12, kisoku: 12, hayasa: 15, tani: 5, anzan: 2 };
+
+/* ===== 流水算 ===== */
+function gRyusui(lv) {
+  const r = Math.random();
+  const st = pick([10, 12, 14, 15, 16, 18, 20, 24]), fl = pick([2, 3, 4, 5, 6]).valueOf();
+  if (lv <= 1) {
+    if (r < .5) return { q: `静水での速さが 時速${st}km の船が、時速${fl}km で流れる川を下る。<br>下りの速さは 時速何km？`, a: num(st + fl, "km"), tag: "流水算（下り）", small: true, note: "下り＝静水の速さ＋流れの速さ" };
+    return { q: `静水での速さが 時速${st}km の船が、時速${fl}km で流れる川を上る。<br>上りの速さは 時速何km？`, a: num(st - fl, "km"), tag: "流水算（上り）", small: true, note: "上り＝静水の速さ−流れの速さ" };
+  }
+  if (lv === 2) {
+    const down = st + fl, up = st - fl;
+    if (r < .5) return { q: `ある船の 下りの速さは 時速${down}km、上りの速さは 時速${up}km。<br>川の流れの速さは 時速何km？`, a: num(fl, "km"), tag: "流水算（流れ）", small: true, note: "（下り−上り）÷2＝流れ" };
+    return { q: `ある船の 下りの速さは 時速${down}km、上りの速さは 時速${up}km。<br>静水での速さは 時速何km？`, a: num(st, "km"), tag: "流水算（静水）", small: true, note: "（下り＋上り）÷2＝静水" };
+  }
+  if (lv === 3) {
+    const t = ri(2, 5);
+    if (r < .5) return { q: `静水での速さ 時速${st}km、流れ 時速${fl}km。<br>${(st + fl) * t}km 下るのに 何時間？`, a: num(t, "時間"), tag: "流水算（下りの時間）", small: true, note: "道のり÷下りの速さ" };
+    return { q: `静水での速さ 時速${st}km、流れ 時速${fl}km。<br>${(st - fl) * t}km 上るのに 何時間？`, a: num(t, "時間"), tag: "流水算（上りの時間）", small: true, note: "道のり÷上りの速さ" };
+  }
+  if (lv === 4) {
+    const t1 = ri(2, 4), t2 = t1 + ri(1, 3);
+    const d = (st + fl) * t1;   /* 下り t1 時間 */
+    /* 上り t2 時間になる流れ：(st−fl2)×t2 = d → 設計しなおし：距離 d を上りが t2 時間 */
+    const up = d / t2;
+    if (Number.isInteger(up) && up < st) return { q: `ある川を ${d}km 下るのに ${t1}時間、同じ距離を上るのに ${t2}時間かかった。<br>川の流れの速さは 時速何km？`, a: num((d / t1 - up) / 2, "km"), tag: "流水算（往復）", small: true, note: "下りと上りの速さを出して、（下り−上り）÷2" };
+    return { q: `静水での速さ 時速${st}km の船が、${fl}km/時 で流れる川を ${(st + fl) * t1}km 下って、すぐ上って戻った。<br>上りにかかる時間は 何時間？（分数で可）`, a: ((st + fl) * t1 % (st - fl) === 0 ? num((st + fl) * t1 / (st - fl), "時間") : frac((st + fl) * t1, st - fl)), tag: "流水算（往復）", small: true, note: "上りの速さ＝静水−流れ。道のり÷上りの速さ" };
+  }
+  const ta = ri(2, 4), tb = ta + ri(1, 3), D = (st + fl) * ta;
+  const upSpeed = D / tb;
+  if (Number.isInteger(upSpeed) && upSpeed < st + fl) return { q: `船が ${D}km の川を下るのに ${ta}時間、上るのに ${tb}時間かかる。<br>静水での船の速さは 時速何km？`, a: num((D / ta + upSpeed) / 2, "km"), tag: "流水算（静水を求める）", small: true, note: "（下り＋上り）÷2" };
+  const eng = pick([6, 8, 10]);
+  return { q: `静水での速さ 時速${st}km、流れ 時速${fl}km。上りの途中でエンジンが止まり、${eng}分間 流された。<br>その間に流された距離は 何km？（分数で可）`, a: (fl * eng % 60 === 0 ? num(fl * eng / 60, "km") : frac(fl * eng, 60)), tag: "流水算（エンジン停止）", small: true, note: "止まった船は流れの速さで下流へ。時速×時間（分は÷60）" };
+}
+
+/* ===== 数の性質（約数・倍数・あまり） ===== */
+const divisors = n => { const d = []; for (let i = 1; i <= n; i++) if (n % i === 0) d.push(i); return d; };
+const gcd2 = (a, b) => gcd(a, b), lcm2 = (a, b) => a * b / gcd(a, b);
+function gSeishitsu(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    if (r < .5) { const n = pick([12, 16, 18, 20, 24, 28, 30, 36]); return { q: `${n} の約数は 全部で何個？`, a: num(divisors(n).length, "個"), tag: "約数の個数", small: true, note: "ペアで数える（1と${n}、2と…）" }; }
+    const k = pick([3, 4, 6, 7, 8, 9]), N = pick([50, 60, 80, 100]); return { q: `1から${N}までの整数のうち、${k}の倍数は 何個？`, a: num(Math.floor(N / k), "個"), tag: "倍数の個数", small: true, note: `${N}÷${k} の商` };
+  }
+  if (lv === 2) {
+    const a = pick([12, 18, 24, 36, 48]), b = pick([16, 20, 30, 40, 42]);
+    if (r < .5) return { q: `${a} と ${b} の最大公約数は？`, a: num(gcd2(a, b)), tag: "最大公約数", small: true, note: "連除法（すだれ算）で共通に割る" };
+    return { q: `${a} と ${b} の最小公倍数は？`, a: num(lcm2(a, b)), tag: "最小公倍数", small: true, note: "連除法で、L字に掛ける" };
+  }
+  if (lv === 3) {
+    if (r < .4) { const a = pick([4, 5, 6]), b = pick([7, 8, 9]), m = ri(1, 3); const rem = Math.min(a, b) - 1 - (m - 1); const base = lcm2(a, b); const x = base - Math.min(a - 1, b - 1) ; 
+      /* 「aで割ってもbで割っても k あまる最小の数」 */
+      const k = ri(1, Math.min(a, b) - 1); return { q: `${a}で割っても ${b}で割っても ${k}あまる整数のうち、いちばん小さい数は？`, a: num(base + k), tag: "あまりが同じ", small: true, note: "最小公倍数＋あまり" }; }
+    if (r < .7) { const a = pick([4, 6, 8]), b = pick([5, 7, 9]); const base = lcm2(a, b); return { q: `${a}で割ると ${a - 1}あまり、${b}で割ると ${b - 1}あまる整数のうち、いちばん小さい数は？`, a: num(base - 1), tag: "不足が同じ", small: true, note: "『あと1で割り切れる』→最小公倍数−1" }; }
+    const n = pick([36, 48, 60, 72, 84, 90, 96, 100]); const f = []; let m = n; for (let p = 2; p <= m; p++) while (m % p === 0) { f.push(p); m /= p; } return { q: `${n} を素数の積で表したとき、素数は全部で何個かけられている？<br>（例：12＝2×2×3 → 3個）`, a: num(f.length, "個"), tag: "素因数分解", small: true, note: "小さい素数から順に割る" };
+  }
+  if (lv === 4) {
+    if (r < .4) { const n = pick([48, 60, 72, 84, 90, 96, 100, 108, 120, 144]); return { q: `${n} の約数は 全部で何個？`, a: num(divisors(n).length, "個"), tag: "約数の個数（公式）", small: true, note: "素因数分解して（指数＋1）を掛ける" }; }
+    if (r < .7) { const a = pick([3, 4, 6]), b = pick([5, 7, 8]), N = pick([100, 120, 150, 200]); const L = lcm2(a, b); return { q: `1から${N}までの整数のうち、${a}の倍数でも ${b}の倍数でもある数は 何個？`, a: num(Math.floor(N / L), "個"), tag: "公倍数の個数", small: true, note: `最小公倍数 ${L} の倍数を数える` }; }
+    const a = pick([12, 18, 24, 30]), b = pick([16, 20, 36, 40]), c = pick([8, 9, 15]); return { q: `${a}、${b}、${c} の最大公約数は？`, a: num(gcd2(gcd2(a, b), c)), tag: "3つの最大公約数", small: true, note: "3つとも割れる数だけで割る" };
+  }
+  if (r < .35) { const a = pick([3, 4, 6]), b = pick([5, 7, 8]), N = pick([100, 120, 150, 200]); const L = lcm2(a, b); return { q: `1から${N}までの整数のうち、${a}でも ${b}でも割り切れない数は 何個？`, a: num(N - Math.floor(N / a) - Math.floor(N / b) + Math.floor(N / L), "個"), tag: "どちらでも割り切れない", small: true, note: "全体−(aの倍数＋bの倍数−公倍数)" }; }
+  if (r < .65) { const n = pick([10, 15, 20, 25, 30, 40, 50]); let z = 0, m = n; while (m >= 5) { z += Math.floor(m / 5); m = Math.floor(m / 5); } return { q: `1×2×3×…×${n} を計算すると、一の位から 0 は 何個 続く？`, a: num(z, "個"), tag: "末尾の0の個数", small: true, note: "5の倍数の個数（25は2回数える）" }; }
+  const a = pick([12, 18, 20]), b = pick([15, 16, 24]); const L = lcm2(a, b); return { q: `たて${a}cm、よこ${b}cm の長方形のタイルをすきまなく並べて、<br>いちばん小さい正方形を作る。1辺は 何cm？`, a: num(L, "cm"), tag: "最小公倍数の利用", small: true, note: "たてとよこの最小公倍数" };
+}
+
+const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu, bun: gBun, zukei: gZukei, kisoku: gKisoku, hayasa: gHayasa, tani: gTani, anzan: gAnzan, ryusui: gRyusui, seishitsu: gSeishitsu };
+const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫", bun: "一行題", zukei: "図形", kisoku: "規則性", hayasa: "速さ", tani: "単位換算", anzan: "暗算スプリント", ryusui: "流水算", seishitsu: "数の性質" };
+const BASE_TIME = { pi: 50, frac: 60, ratio: 65, gyaku: 60, kufuu: 60, bun: 140, zukei: 75, kisoku: 80, hayasa: 90, tani: 45, anzan: 12, ryusui: 80, seishitsu: 70 };
+const TIME_STEP = { pi: 8, frac: 10, ratio: 10, gyaku: 10, kufuu: 10, bun: 15, zukei: 12, kisoku: 12, hayasa: 15, tani: 5, anzan: 2, ryusui: 12, seishitsu: 12 };
 
 /* ---------- 型レクチャー（まちがえた問題の解説） ---------- */
 const LECTURES = {

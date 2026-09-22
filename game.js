@@ -1035,6 +1035,7 @@ $("btnCont").onclick = () => {
 };
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
 $("btnIkusei").onclick = () => { sfx.tap(); spinMenu(); };
+$("btnMyst").onclick = () => { sfx.tap(); mystMenu(); };
 $("btnDream").onclick = () => { sfx.tap(); openDream(); };
 $("btnZukanT").onclick = () => { sfx.tap(); openZukan(); };
 $("btnHelp").onclick = () => { sfx.tap(); openHelp(); };
@@ -4452,7 +4453,7 @@ function openDrill() {
   openSheet(`<div class="ptitle">特訓モード<small>20問タイムアタック</small></div>
     <div class="lbl" style="margin:4px 0 6px">GENRE</div>
     <div class="list">${gs.map(g => `<button class="item" data-g="${g}" style="${g === drill.g ? "box-shadow:0 0 0 1.5px var(--gold) inset" : ""}">
-      <span class="ie">${({ pi: "🥧", frac: "🍰", ratio: "⚖️", gyaku: "🔙", kufuu: "💡", bun: "📖", zukei: "📐", kisoku: "🔢", hayasa: "🚃", tani: "📏", anzan: "⚡" }[g] || "✏️")}</span>
+      <span class="ie">${({ pi: "🥧", frac: "🍰", ratio: "⚖️", gyaku: "🔙", kufuu: "💡", bun: "📖", zukei: "📐", kisoku: "🔢", hayasa: "🚃", tani: "📏", anzan: "⚡", ryusui: "🚤", seishitsu: "🔢" }[g] || "✏️")}</span>
       <div class="it"><b>${MATH.GENRE_NAME[g]}</b><small>${bestText(g, drill.lv)}</small></div></button>`).join("")}</div>
     <div class="lbl" style="margin:14px 0 6px">LEVEL</div>
     <div class="tabs">${[1, 2, 3, 4, 5].map(l => `<button class="tab ${l === drill.lv ? "on" : ""}" data-l="${l}">Lv.${l}</button>`).join("")}</div>
