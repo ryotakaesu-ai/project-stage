@@ -1036,6 +1036,8 @@ $("btnCont").onclick = () => {
 $("btnDrill").onclick = () => { sfx.tap(); openDrill(); };
 $("btnIkusei").onclick = () => { sfx.tap(); spinMenu(); };
 $("btnMyst").onclick = () => { sfx.tap(); mystMenu(); };
+$("btnSaiten").onclick = () => { sfx.tap(); openSaiten(); };
+$("btnTour").onclick = () => { sfx.tap(); openTour(); };
 $("btnDream").onclick = () => { sfx.tap(); openDream(); };
 $("btnZukanT").onclick = () => { sfx.tap(); openZukan(); };
 $("btnHelp").onclick = () => { sfx.tap(); openHelp(); };
