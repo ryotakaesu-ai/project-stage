@@ -394,11 +394,14 @@ function gZukei(lv) {
     const x = ri(30, 80), y = ri(30, 80); return { q: `三角形の2つの内角が ${x}度 と ${y}度。<br>のこりの角の【外角】は 何度？`, a: num(x + y, "度"), tag: "三角形の外角", small: true, note: "外角＝となり合わない2つの内角の和" };
   }
   if (lv === 4) {
+    if (r < .18) { const rr = pick([2, 3, 4, 5, 10]), h = pick([3, 5, 6, 8, 10]); return { q: `底面の半径 ${rr}cm、高さ ${h}cm の円柱。<br>体積は 何cm³？（円周率3.14）`, a: num(R(rr * rr * 3.14 * h), "cm³"), tag: "円柱の体積", small: true, note: "底面積（半径×半径×3.14）×高さ" }; }
     if (r < .3) { const rr = pick([2, 3, 4, 5, 6, 10, 20]); return { q: `半径 ${rr}cm の円。<br>面積は 何cm²？（円周率3.14）`, a: num(rr * rr * 3.14, "cm²"), tag: "円の面積", small: true, note: "半径×半径×3.14" }; }
     if (r < .55) { const d = pick([4, 6, 8, 10, 12, 20]); return { q: `直径 ${d}cm の半円。<br>まわりの長さは 何cm？（直線部分もふくむ）`, a: num(d * 3.14 / 2 + d, "cm"), tag: "半円のまわり", small: true, note: "曲線（直径×3.14÷2）＋直径。直線を忘れがち" }; }
     if (r < .8) { const a = ri(4, 16), b = ri(4, 16); return { q: `対角線が ${a}cm と ${b}cm のひし形。<br>面積は 何cm²？`, a: num(a * b / 2, "cm²"), tag: "ひし形の面積", small: true, note: "対角線×対角線÷2" }; }
     const x = ri(35, 145); return { q: `平行な2直線に1本の直線が交わる。<br>1つの角が ${x}度のとき、その【同位角】は 何度？`, a: num(x, "度"), tag: "平行線と角", small: true, note: "同位角・錯角は等しい。となりの角は180−x" };
   }
+  if (r < .12) { const b = pick([4, 6, 8, 10]), hh = pick([3, 5, 6]), H = pick([4, 7, 10]); return { q: `底面が 底辺${b}cm・高さ${hh}cm の三角形で、高さ ${H}cm の三角柱。<br>体積は 何cm³？`, a: num(b * hh / 2 * H, "cm³"), tag: "三角柱の体積", small: true, note: "底面積（三角形）×高さ" }; }
+  if (r < .22) { const rr = pick([3, 6, 9]), h = pick([4, 5, 10]); return { q: `底面の半径 ${rr}cm、高さ ${h}cm の円すい。<br>体積は 何cm³？（円周率3.14）`, a: num(R(rr * rr * 3.14 * h / 3), "cm³"), tag: "円すいの体積", small: true, note: "円柱の 1/3。底面積×高さ÷3" }; }
   if (r < .3) { const rr = pick([2, 3, 4, 6, 10]), deg = pick([90, 60, 45, 120, 180]); return { q: `半径 ${rr}cm、中心角 ${deg}度 のおうぎ形。<br>面積は 何cm²？（円周率3.14）`, a: num(rr * rr * 3.14 * deg / 360, "cm²"), tag: "おうぎ形の面積", small: true, note: "円の面積×中心角/360" }; }
   if (r < .55) { const n = pick([5, 6, 8, 9, 10, 12]); return { q: `正${n}角形の1つの内角は 何度？`, a: num(180 * (n - 2) / n, "度"), tag: "正多角形の内角", small: true, note: "180×(n−2)÷n。外角は360÷n" }; }
   if (r < .8) { const a = pick([4, 6, 8, 10, 20]); return { q: `1辺 ${a}cm の正方形に、ぴったり入る円をかいた。<br>正方形から円を引いた部分の面積は 何cm²？`, a: num(a * a - (a / 2) * (a / 2) * 3.14, "cm²"), tag: "正方形−円", small: true, note: "正方形の面積 − 半径(1辺÷2)の円" }; }
@@ -581,10 +584,82 @@ function gSeishitsu(lv) {
   const a = pick([12, 18, 20]), b = pick([15, 16, 24]); const L = lcm2(a, b); return { q: `たて${a}cm、よこ${b}cm の長方形のタイルをすきまなく並べて、<br>いちばん小さい正方形を作る。1辺は 何cm？`, a: num(L, "cm"), tag: "最小公倍数の利用", small: true, note: "たてとよこの最小公倍数" };
 }
 
-const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu, bun: gBun, zukei: gZukei, kisoku: gKisoku, hayasa: gHayasa, tani: gTani, anzan: gAnzan, ryusui: gRyusui, seishitsu: gSeishitsu };
-const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫", bun: "一行題", zukei: "図形", kisoku: "規則性", hayasa: "速さ", tani: "単位換算", anzan: "暗算スプリント", ryusui: "流水算", seishitsu: "数の性質" };
-const BASE_TIME = { pi: 50, frac: 60, ratio: 65, gyaku: 60, kufuu: 60, bun: 140, zukei: 75, kisoku: 80, hayasa: 90, tani: 45, anzan: 12, ryusui: 80, seishitsu: 70 };
-const TIME_STEP = { pi: 8, frac: 10, ratio: 10, gyaku: 10, kufuu: 10, bun: 15, zukei: 12, kisoku: 12, hayasa: 15, tani: 5, anzan: 2, ryusui: 12, seishitsu: 12 };
+
+/* ===== 頻出暗記計算（受験で「覚えておく」もの） ===== */
+const SQ_NOTE = "平方数は暗記。11²=121 12²=144 13²=169 14²=196 15²=225 16²=256 17²=289 18²=324 19²=361 25²=625";
+const PI_T = { 1: 3.14, 2: 6.28, 3: 9.42, 4: 12.56, 5: 15.7, 6: 18.84, 7: 21.98, 8: 25.12, 9: 28.26, 12: 37.68, 15: 47.1, 16: 50.24, 18: 56.52, 24: 75.36, 25: 78.5, 36: 113.04 };
+const FD = [[1, 2, .5], [1, 4, .25], [3, 4, .75], [1, 5, .2], [2, 5, .4], [3, 5, .6], [4, 5, .8], [1, 8, .125], [3, 8, .375], [5, 8, .625], [7, 8, .875], [1, 16, .0625], [3, 16, .1875], [1, 20, .05], [1, 25, .04], [1, 40, .025], [1, 50, .02]];
+function gAnki(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    if (r < .4) { const a = ri(11, 15); return { q: `${a} × ${a}`, a: num(a * a), tag: "平方数（暗記）", note: SQ_NOTE }; }
+    if (r < .7) { const n = ri(2, 9); return { q: `3.14 × ${n}`, a: num(R(3.14 * n)), tag: "3.14の段（暗記）", note: "3.14×1〜9 は九九のように" }; }
+    const [n, d, v] = pick(FD.slice(0, 7)); return { q: `${n}/${d} を小数に直すと？`, a: num(v), tag: "分数→小数（暗記）", note: "1/4=0.25 1/5=0.2 1/8=0.125 は反射で" };
+  }
+  if (lv === 2) {
+    if (r < .35) { const a = ri(11, 19); return { q: `${a} × ${a}`, a: num(a * a), tag: "平方数（暗記）", note: SQ_NOTE }; }
+    if (r < .6) { const n = pick([12, 15, 16, 18, 24, 25]); return { q: `3.14 × ${n}`, a: num(PI_T[n]), tag: "3.14×頻出数（暗記）", note: "3.14×12=37.68 ×15=47.1 ×16=50.24 ×18=56.52 ×24=75.36 ×25=78.5" }; }
+    if (r < .8) { const [n, d, v] = pick(FD); return { q: `${n}/${d} を小数に直すと？`, a: num(v), tag: "分数→小数（暗記）", note: "1/8=0.125 3/8=0.375 5/8=0.625 7/8=0.875 1/16=0.0625" }; }
+    const n = ri(4, 10); return { q: `2 を ${n}回かけた数は？`, a: num(2 ** n), tag: "2のn乗（暗記）", note: "2⁴=16 2⁵=32 2⁶=64 2⁷=128 2⁸=256 2⁹=512 2¹⁰=1024" };
+  }
+  if (lv === 3) {
+    if (r < .3) { const a = pick([21, 22, 23, 24, 25, 30, 35, 40, 45, 50]); return { q: `${a} × ${a}`, a: num(a * a), tag: "平方数（暗記）", note: "25²=625 35²=1225 45²=2025。5で終わる数は『十の位×(十の位+1)』のあとに25" }; }
+    if (r < .55) { const a = ri(11, 19), b = ri(11, 19); if (a === b) return gAnki(3); return { q: `${a} × ${b}`, a: num(a * b), tag: "11〜19どうし（ワザ）", note: "（大きい数＋小さい数の一の位）×10 ＋ 一の位どうしの積" }; }
+    if (r < .75) { const v = pick([.125, .375, .625, .875, .0625, .25, .75, .2, .4, .6, .8, .05]); const f = FD.find(x => x[2] === v); return { q: `${v} を分数に直すと？`, a: frac(f[0], f[1]), tag: "小数→分数（暗記）", note: "0.125=1/8 0.375=3/8 0.625=5/8 0.875=7/8 0.0625=1/16" }; }
+    const a = pick([125, 375, 625, 875]), b = pick([8, 16]); return { q: `${a} × ${b}`, a: num(a * b), tag: "125×8=1000（ワザ）", note: "125×8=1000、375×8=3000、625×8=5000、875×8=7000" };
+  }
+  if (lv === 4) {
+    if (r < .3) { const rr = ri(2, 12); return { q: `半径 ${rr}cm の円の面積は？（3.14）`, a: num(R(rr * rr * 3.14), "cm²"), tag: "円の面積（平方数×3.14）", note: "半径²を暗記しておけば、3.14との掛け算1回で済む" }; }
+    if (r < .55) { const n = pick([11, 13, 14, 17, 19, 21, 22, 23]); return { q: `3.14 × ${n}`, a: num(R(3.14 * n)), tag: "3.14×2桁", note: "3.14×(10+n)＝31.4＋3.14×n に分ける" }; }
+    if (r < .8) { const a = ri(12, 99); return { q: `${a} × 11`, a: num(a * 11), tag: "×11（ワザ）", note: "十の位と一の位をたして、真ん中に入れる（くり上がり注意）" }; }
+    const a = ri(12, 89); return { q: `${a} × 99`, a: num(a * 99), tag: "×99（ワザ）", note: "100倍から1回引く：${a}00−${a}".replace(/\$\{a\}/g, String(a)) };
+  }
+  if (r < .3) { const a = pick([15, 25, 35, 45, 55, 65, 75]); return { q: `${a} × ${a}`, a: num(a * a), tag: "5で終わる平方", note: "十の位×(十の位+1) → そのあとに25" }; }
+  if (r < .55) { const n = ri(5, 9); let v = 1; for (let i = 2; i <= n; i++) v *= i; return { q: `1×2×3×…×${n}`, a: num(v), tag: "階乗（並べ方の数）", note: "5!=120 6!=720 7!=5040。場合の数で頻出" }; }
+  if (r < .8) { const a = pick([36, 48, 64, 72, 96, 144]), b = pick([.25, .5, .75, .125, .375]); return { q: `${a} × ${b}`, a: num(a * b), tag: "小数×＝分数で（ワザ）", note: "0.25=1/4、0.375=3/8 と見て分数で計算すると速い" }; }
+  const a = ri(3, 9), b = ri(3, 9); return { q: `${a}.${a} × 11`, a: num(R(a * 1.1 * 11)), tag: "×11（小数）", note: "整数と同じワザ。最後に小数点を戻す" };
+}
+
+/* ===== 旅人算（出会い・追いつき・池のまわり・通過算） ===== */
+function gTabibito(lv) {
+  const r = Math.random();
+  if (lv <= 1) {
+    const a = pick([60, 70, 80]), b = pick([40, 50, 60]), t = ri(5, 20);
+    return { q: `${(a + b) * t}mはなれた2人が同時に向かい合って歩く。<br>分速${a}m と 分速${b}m。出会うのは 何分後？`, a: num(t, "分後"), tag: "旅人算（出会い）", small: true, note: "向かい合う→速さの和で道のりをちぢめる" };
+  }
+  if (lv === 2) {
+    const b = pick([50, 60, 70]), a = b + pick([10, 20, 30]), t = ri(4, 15);
+    return { q: `弟が分速${b}mで先に出発し、${(a - b) * t}mはなれたとき<br>兄が分速${a}mで追いかけた。追いつくのは 何分後？`, a: num(t, "分後"), tag: "旅人算（追いつき）", small: true, note: "追いかける→速さの差で、はなれた分をつめる" };
+  }
+  if (lv === 3) {
+    if (r < .5) { const a = pick([60, 70, 80]), b = pick([40, 50]), t = ri(3, 8), L = (a + b) * t; return { q: `まわり${L}mの池を、同じ場所から同時に反対向きに歩く。<br>分速${a}m と 分速${b}m。はじめて出会うのは 何分後？`, a: num(t, "分後"), tag: "旅人算（池・反対向き）", small: true, note: "2人の道のりの和＝1周" }; }
+    const b = pick([50, 60]), a = b + pick([20, 25, 40]), t = ri(4, 10), L = (a - b) * t; return { q: `まわり${L}mの池を、同じ場所から同時に同じ向きに歩く。<br>分速${a}m と 分速${b}m。速いほうが遅いほうにはじめて追いつくのは 何分後？`, a: num(t, "分後"), tag: "旅人算（池・同じ向き）", small: true, note: "2人の道のりの差＝1周" };
+  }
+  if (lv === 4) {
+    if (r < .5) { const L = pick([100, 120, 150, 180, 200]), v = pick([15, 20, 25, 30]); if ((L) % v) return gTabibito(4); return { q: `長さ${L}mの電車が秒速${v}mで走る。<br>電柱の前を通過するのに 何秒かかる？`, a: num(L / v, "秒"), tag: "通過算（電柱）", small: true, note: "電柱を通過＝電車の長さぶん進む" }; }
+    const L = pick([120, 150, 180, 200]), B = pick([300, 420, 480, 600, 720]), v = pick([20, 25, 30]); if ((L + B) % v) return gTabibito(4); return { q: `長さ${L}mの電車が秒速${v}mで、長さ${B}mの鉄橋をわたり始めてからわたり終わるまで 何秒？`, a: num((L + B) / v, "秒"), tag: "通過算（鉄橋）", small: true, note: "電車の長さ＋橋の長さ を進む" };
+  }
+  if (r < .5) { const L1 = pick([120, 150, 180]), L2 = pick([100, 120, 200]), v1 = pick([20, 25]), v2 = pick([15, 20, 30]); if ((L1 + L2) % (v1 + v2)) return gTabibito(5); return { q: `長さ${L1}m・秒速${v1}mの電車と、長さ${L2}m・秒速${v2}mの電車が向かい合って走る。<br>出会ってからすれちがい終わるまで 何秒？`, a: num((L1 + L2) / (v1 + v2), "秒"), tag: "通過算（すれちがい）", small: true, note: "長さの和 ÷ 速さの和" }; }
+  const a = pick([60, 80]), b = pick([40, 50]), D = (a + b) * ri(5, 12); return { q: `${D}mはなれたA地点とB地点から、分速${a}mと分速${b}mで同時に向かい合って出発し、出会ったあともそのまま進んで相手の地点で折り返す。<br>2回目に出会うのは出発から 何分後？`, a: num(3 * D / (a + b), "分後"), tag: "旅人算（2回目の出会い）", small: true, note: "2回目の出会いまでに2人合わせて 3往復分（道のり×3）進む" };
+}
+
+/* ===== つるかめ算（基本・お金・損益・速さ・弁償） ===== */
+function gTsurukame(lv) {
+  const r = Math.random();
+  if (lv <= 1) { const k = ri(2, 9), t = ri(2, 9); return Math.random() < .5
+    ? { q: `ツルとカメが合わせて${k + t}匹。足は全部で${t * 2 + k * 4}本。<br>カメは 何匹？`, a: num(k, "匹"), tag: "つるかめ算", small: true, note: "全部ツルとして考え、足の差÷2" }
+    : { q: `ツルとカメが合わせて${k + t}匹。足は全部で${t * 2 + k * 4}本。<br>ツルは 何匹？`, a: num(t, "匹"), tag: "つるかめ算", small: true, note: "カメの数を出したあと、合計から引く。聞かれたのはツル" }; }
+  if (lv === 2) { const a = pick([50, 60, 80]), b = a + pick([20, 30, 40]), na = ri(3, 12), nb = ri(3, 12); return { q: `${a}円の切手と${b}円の切手を合わせて${na + nb}枚買い、代金は${a * na + b * nb}円。<br>${b}円の切手は 何枚？`, a: num(nb, "枚"), tag: "つるかめ算（お金）", small: true, note: `全部${a}円なら ${a}×${na + nb}。差を（${b}−${a}）で割る` }; }
+  if (lv === 3) { const p = pick([4, 5, 10]), m = pick([1, 2, 3]), n = pick([20, 25, 30]), ok = ri(10, n - 2); const score = p * ok - m * (n - ok); return { q: `${n}問のクイズ。正解すると${p}点もらえ、不正解だと${m}点ひかれる。<br>結果は${score}点だった。正解は 何問？`, a: num(ok, "問"), tag: "つるかめ算（得点）", small: true, note: `全部正解なら ${p * n}点。1問まちがえるごとに ${p + m}点へる` }; }
+  if (lv === 4) { const w = pick([60, 80]), run = pick([150, 200]), tw = ri(5, 15), tr = ri(3, 10); return { q: `家から学校まで${w * tw + run * tr}m。分速${w}mで歩き、途中から分速${run}mで走ったら、全部で${tw + tr}分かかった。<br>走った時間は 何分？`, a: num(tr, "分"), tag: "つるかめ算（速さ）", small: true, note: `全部歩いたら ${w}×${tw + tr}m。差を（${run}−${w}）で割る` }; }
+  const pay = pick([30, 40, 50]), pen = pick([100, 150, 200]), n = pick([100, 120, 150]), broke = ri(2, 8); const money = pay * (n - broke) - pen * broke;
+  return { q: `皿を1枚運ぶと${pay}円もらえるが、割ると${pen}円はらう。<br>${n}枚運んで受け取ったお金は${money}円。割った皿は 何枚？`, a: num(broke, "枚"), tag: "弁償算", small: true, note: `全部運べたら ${pay * n}円。1枚割るごとに ${pay + pen}円へる` };
+}
+
+const GEN = { pi: gPi, frac: gFrac, ratio: gRatio, gyaku: gGyaku, kufuu: gKufuu, bun: gBun, zukei: gZukei, kisoku: gKisoku, hayasa: gHayasa, tani: gTani, anzan: gAnzan, ryusui: gRyusui, seishitsu: gSeishitsu, anki: gAnki, tabibito: gTabibito, tsurukame: gTsurukame };
+const GENRE_NAME = { pi: "3.14マスター", frac: "分数と小数", ratio: "割合と比", gyaku: "逆算", kufuu: "四則と工夫", bun: "一行題", zukei: "図形", kisoku: "規則性", hayasa: "速さ", tani: "単位換算", anzan: "暗算スプリント", ryusui: "流水算", seishitsu: "数の性質", anki: "頻出暗記計算", tabibito: "旅人算・通過算", tsurukame: "つるかめ算" };
+const BASE_TIME = { pi: 50, frac: 60, ratio: 65, gyaku: 60, kufuu: 60, bun: 140, zukei: 75, kisoku: 80, hayasa: 90, tani: 45, anzan: 12, ryusui: 80, seishitsu: 70, anki: 20, tabibito: 90, tsurukame: 90 };
+const TIME_STEP = { pi: 8, frac: 10, ratio: 10, gyaku: 10, kufuu: 10, bun: 15, zukei: 12, kisoku: 12, hayasa: 15, tani: 5, anzan: 2, ryusui: 12, seishitsu: 12, anki: 3, tabibito: 15, tsurukame: 15 };
 
 /* ---------- 型レクチャー（まちがえた問題の解説） ---------- */
 const LECTURES = {

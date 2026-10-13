@@ -1,7 +1,7 @@
 /* =====================================================================
    tour.js  🚌 タイムレッスー 全国ツアー（弱点別ステージ）
-   12都市＝12単元。各都市でライブ（10問）。8問以上で公演成功、正解数で★1〜3。
-   都市をクリアするたびに、その都市のレベルが上がる（Lv1→5）。
+   14都市＝14単元。各都市でライブ（10問）。8問以上で公演成功、正解数で★1〜3。
+   受験本番レベル：各都市は Lv3 から始まり、クリアするたびに上がる（Lv3→5）。
    弱点分析（DB.meta.gstat）から「次に回るべき都市」を提案する。
    6都市クリアでアンコール（苦手3単元ミックス）、全都市★でドーム公演。
    ===================================================================== */
@@ -14,7 +14,9 @@ const TOUR_CITIES = [
   { id: "yokohama", n: "横浜",   g: "gyaku",     e: "🔙", venue: "横浜アリーナ",            food: "中華まん",       host: "riku" },
   { id: "nagoya",   n: "名古屋", g: "zukei",     e: "📐", venue: "日本ガイシホール",        food: "ひつまぶし",     host: "daigo" },
   { id: "osaka",    n: "大阪",   g: "seishitsu", e: "🔢", venue: "大阪城ホール",            food: "たこ焼き",       host: "daigo" },
-  { id: "kobe",     n: "神戸",   g: "bun",       e: "📖", venue: "神戸ワールド記念ホール",  food: "神戸牛コロッケ", host: "kanade" },
+  { id: "kobe",     n: "神戸",   g: "tsurukame", e: "🐢", venue: "神戸ワールド記念ホール",  food: "神戸牛コロッケ", host: "kanade" },
+  { id: "nagano",   n: "長野",   g: "anki",      e: "🧠", venue: "長野ビッグハット",        food: "信州そば",       host: "shino" },
+  { id: "kagoshima",n: "鹿児島", g: "tabibito",  e: "🚄", venue: "鹿児島アリーナ",          food: "黒豚とんかつ",   host: "takuto" },
   { id: "hiroshima",n: "広島",   g: "kisoku",    e: "🔢", venue: "広島グリーンアリーナ",    food: "お好み焼き",     host: "yuma" },
   { id: "fukuoka",  n: "福岡",   g: "frac",      e: "🍰", venue: "マリンメッセ福岡",        food: "豚骨ラーメン",   host: "noa" },
   { id: "okinawa",  n: "沖縄",   g: "ryusui",    e: "🚤", venue: "沖縄コンベンションセンター", food: "サーターアンダギー", host: "roi" },
@@ -46,12 +48,13 @@ function openTour() {
   const m = tourMeta(); const rec = tourRecommend();
   const cleared = TOUR_CITIES.filter(c => (m.stars[c.id] || 0) >= 1).length;
   const allStar = cleared === TOUR_CITIES.length;
-  openSheet(`<div class="ptitle">🚌 タイムレッスー 全国ツアー<small>12都市＝12単元。苦手な街を回って、全国を制覇する</small></div>
-    <div class="dpLine" style="margin-bottom:6px">制覇 <b>${cleared}</b>/12都市　★合計 <b>${Object.values(m.stars).reduce((a, b) => a + b, 0)}</b>　公演 <b>${m.plays}</b>回</div>
+  TOUR_CITIES.forEach(c => { if (!m.lv[c.id] || m.lv[c.id] < 3) m.lv[c.id] = 3; });
+  openSheet(`<div class="ptitle">🚌 タイムレッスー 全国ツアー<small>14都市＝14単元。受験本番レベル（Lv3〜5）。苦手な街を回って全国制覇</small></div>
+    <div class="dpLine" style="margin-bottom:6px">制覇 <b>${cleared}</b>/14都市　★合計 <b>${Object.values(m.stars).reduce((a, b) => a + b, 0)}</b>　公演 <b>${m.plays}</b>回</div>
     <div style="font-size:11px;color:var(--gold);margin-bottom:8px">🧭 シノのおすすめ：<b>${rec.e} ${rec.n}（${MATH.GENRE_NAME[rec.g]}）</b>${tourAcc(rec.g) !== null ? `　正答率 ${Math.round(tourAcc(rec.g) * 100)}%` : "　まだデータが少ない"}</div>
-    <div class="list">${TOUR_CITIES.map(c => { const st = m.stars[c.id] || 0, lv = m.lv[c.id] || 1, acc = tourAcc(c.g); return `<button class="item" data-c="${c.id}" style="${c.id === rec.id ? "box-shadow:0 0 0 1.5px var(--gold) inset" : ""}"><span class="ie">${c.e}</span><div class="it"><b>${c.n}　<span style="color:#ffcf5c">${"★".repeat(st)}${"☆".repeat(3 - st)}</span>　<small style="color:var(--ink3)">Lv.${lv}</small></b><small>${MATH.GENRE_NAME[c.g]}　${c.venue}${acc !== null ? `　正答率${Math.round(acc * 100)}%${acc < .7 ? " ⚠苦手" : ""}` : ""}</small></div></button>`; }).join("")}</div>
+    <div class="list">${TOUR_CITIES.map(c => { const st = m.stars[c.id] || 0, lv = m.lv[c.id] || 3, acc = tourAcc(c.g); return `<button class="item" data-c="${c.id}" style="${c.id === rec.id ? "box-shadow:0 0 0 1.5px var(--gold) inset" : ""}"><span class="ie">${c.e}</span><div class="it"><b>${c.n}　<span style="color:#ffcf5c">${"★".repeat(st)}${"☆".repeat(3 - st)}</span>　<small style="color:var(--ink3)">Lv.${lv}</small></b><small>${MATH.GENRE_NAME[c.g]}　${c.venue}${acc !== null ? `　正答率${Math.round(acc * 100)}%${acc < .7 ? " ⚠苦手" : ""}` : ""}</small></div></button>`; }).join("")}</div>
     <div style="height:8px"></div>
-    <button class="btn ${cleared >= 6 ? "gold" : "dark"}" id="tourEnc" ${cleared >= 6 ? "" : "disabled"}>🎤 アンコール公演（苦手3単元ミックス15問）${cleared >= 6 ? "" : "　6都市制覇で解放"}</button>
+    <button class="btn ${cleared >= 7 ? "gold" : "dark"}" id="tourEnc" ${cleared >= 7 ? "" : "disabled"}>🎤 アンコール公演（苦手3単元ミックス15問）${cleared >= 7 ? "" : "　7都市制覇で解放"}</button>
     <div style="height:6px"></div>
     <button class="btn ${allStar ? "gold" : "dark"}" id="tourDome" ${allStar ? "" : "disabled"}>🏟 東京ドーム（全単元20問）${allStar ? "" : "　全都市★で解放"}</button>
     <div style="height:8px"></div><button class="btn dark" onclick="closeSheet()">閉じる</button>`);
@@ -60,7 +63,7 @@ function openTour() {
   $("tourDome").onclick = () => { sfx.tap(); closeSheet(); tourDome(); };
 }
 function tourCity(id) {
-  const c = TOUR_CITIES.find(x => x.id === id); const m = tourMeta(); const lv = m.lv[id] || 1;
+  const c = TOUR_CITIES.find(x => x.id === id); const m = tourMeta(); const lv = Math.max(3, m.lv[id] || 3);
   const host = PERSON(c.host) ? c.host : "hara"; const hn = PERSON(host).n;
   m.visits[id] = (m.visits[id] || 0) + 1; save();
   showEvent({ c: host, t: `🚌 ${c.n}公演　${c.venue}\n単元：${MATH.GENRE_NAME[c.g]}　Lv.${lv}\n\n${pick(TOUR_SCENES)(c, hn)}`, ch: [{ t: "🎤 開演（10問）", fx: {}, after: () => startQuiz({ mode: "lesson", genre: c.g, lv, total: 10, title: `🎤 ${c.n}公演　${MATH.GENRE_NAME[c.g]} Lv.${lv}`, onEnd: r => { $("ovResult").classList.remove("on"); tourResult(c, lv, r); } }) }] });
@@ -83,14 +86,14 @@ function tourEncore() {
   const weak = TOUR_CITIES.map(c => ({ c, acc: tourAcc(c.g) ?? .6 })).sort((a, b) => a.acc - b.acc).slice(0, 3);
   const gs = weak.map(w => w.c.g); const names = weak.map(w => w.c.n).join("・");
   showEvent({ c: "tsukasa", t: `🎤 アンコール公演\n\nフマ「アンコールは、おまえの苦手だけでやる。\n${names}。……逃げ場なしだ。15問」`, ch: [{ t: "🔥 やる", fx: {}, after: () => {
-    const fixed = Array.from({ length: 15 }, (_, i) => MATH.gen(gs[i % 3], clamp(3 + Math.floor(i / 6), 3, 5)));
+    const fixed = Array.from({ length: 15 }, (_, i) => MATH.gen(gs[i % 3], clamp(4 + Math.floor(i / 8), 4, 5)));
     startQuiz({ mode: "lesson", genre: gs[0], lv: 4, total: 15, fixed, title: "🎤 アンコール　苦手3単元", onEnd: r => { $("ovResult").classList.remove("on"); const m = tourMeta(); m.encore++; save(); const ok = r.correct >= 12; if (ok) { confetti(60); sfx.clear(); } showEvent({ c: "tsukasa", t: `アンコール　正解 ${r.correct}/15\n\n${ok ? "フマ「……苦手で12本取った。それはもう、苦手じゃない」" : "フマ「まだ苦手だな。……いい。苦手がわかってるやつは、伸びる」"}`, ch: [{ t: "🚌 ツアーマップへ", fx: {}, after: openTour }, ...(r.misses.length ? [{ t: "📖 復習タイム", fx: {}, after: () => startRevenge(r.misses, openTour) }] : [])] }); } });
   } }] });
 }
 function tourDome() {
-  showEvent({ c: "kanade", t: "🏟 東京ドーム\n\nソウ「全国12都市、ぜんぶ回ったね。\n最後は、ドーム。全単元から20問。\n\n……ここに立てるのは、苦手から逃げなかった人だけ。行こう」", ch: [{ t: "🏟 開演", fx: {}, after: () => {
+  showEvent({ c: "kanade", t: "🏟 東京ドーム\n\nソウ「全国14都市、ぜんぶ回ったね。\n最後は、ドーム。全単元から20問。\n\n……ここに立てるのは、苦手から逃げなかった人だけ。行こう」", ch: [{ t: "🏟 開演", fx: {}, after: () => {
     const gs = TOUR_CITIES.map(c => c.g);
-    const fixed = Array.from({ length: 20 }, (_, i) => MATH.gen(gs[i % gs.length], 4));
+    const fixed = Array.from({ length: 20 }, (_, i) => MATH.gen(gs[i % gs.length], 5));
     startQuiz({ mode: "aud", lv: 4, total: 20, fixed, title: "🏟 東京ドーム公演", onEnd: r => { $("ovResult").classList.remove("on"); const m = tourMeta(); m.dome++; m.domeBest = Math.max(m.domeBest || 0, r.correct); save(); if (r.correct >= 16) { confetti(100); sfx.clear(); } showEvent({ c: "tsukasa", t: `🏟 東京ドーム　正解 ${r.correct}/20\n\n${r.correct >= 18 ? "フマ「……完璧だ。全国ツアー、完走。おまえはもう、どの単元が出ても戦える」" : r.correct >= 16 ? "フマ「ドーム、成功だ。……ここまで来たやつを、おれは誇りに思う」" : "フマ「ドームは、甘くない。……でも、ここに立った。それが全部だ。また来い」"}\n\n（ドーム最高記録 ${m.domeBest}/20）`, ch: [{ t: "🚌 ツアーマップへ", fx: {}, after: openTour }] }); } });
   } }] });
 }
